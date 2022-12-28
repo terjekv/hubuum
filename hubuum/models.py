@@ -11,27 +11,29 @@ from django.db import models
 class Host(models.Model):
     name = models.CharField(max_length=255, blank=True, null=True)
     type = models.ForeignKey('HostType', models.CASCADE, blank=True, null=True)
-    manual_serial_number = models.CharField(max_length=255, blank=True, null=True)
+    serial = models.CharField(max_length=255, blank=True, null=True)
     registration_date = models.DateTimeField(blank=True, null=True)
     room = models.ForeignKey('Room', models.CASCADE, blank=True, null=True)
     jack = models.ForeignKey('Jack', models.CASCADE, blank=True, null=True)
     purchase_order = models.ForeignKey('PurchaseOrder', models.CASCADE, blank=True, null=True)
 #    fleet_id = models.IntegerField(blank=True, null=True)
 
-    class Meta:
-        db_table = 'host'
-
     def __str__(self):
         return self.name
 
+# Unique names sounds like a good idea, but "bob's laptop" might happen repeatedly. 
+# Serial numbers are also only vendor-unique...
+#    class Meta:
+#        constraints = [
+#            models.UniqueConstraint(
+#                fields=['name'], name="unique_hostname_constraint",
+#            )
+#        ]
 
 class ExternalSource(models.Model):
     service_name = models.CharField(max_length=255)
     web_url = models.CharField(max_length=255, blank=True, null=True)
     api_url = models.CharField(max_length=255, blank=True, null=True)
-
-    class Meta:
-        db_table = 'externals'
 
     def __str__(self):
         return self.service_name
@@ -60,7 +62,6 @@ class DetectedHostData(models.Model):
     primary_user = models.CharField(max_length=50, blank=True, null=True)
 
     class Meta:
-        db_table = 'detected_host_data'
         verbose_name_plural = "detected host Data"
         constraints = [
             models.UniqueConstraint(
@@ -84,9 +85,6 @@ class HostType(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
 
-    class Meta:
-        db_table = 'host_type'
-
     def __str__(self):
         return self.name
 
@@ -94,9 +92,6 @@ class Jack(models.Model):
     name = models.CharField(max_length=255)
     room = models.ForeignKey('Room', models.CASCADE, db_column='room', blank=True, null=True)
     building = models.CharField(max_length=255, blank=True, null=True)
-
-    class Meta:
-        db_table = 'jack'
 
     def __str__(self):
         return self.name
@@ -110,9 +105,6 @@ class Person(models.Model):
     office_phone = models.CharField(max_length=255, blank=True, null=True)
     mobile_phone = models.CharField(max_length=255, blank=True, null=True)
 
-    class Meta:
-        db_table = 'person'
-
     def __str__(self):
         return self.username
 
@@ -122,7 +114,6 @@ class PurchaseDocuments(models.Model):
     document = models.BinaryField(blank=False, null=False)
 
     class Meta:
-        db_table = 'purchase_documents'
         verbose_name_plural = "purchase documents"
 
     def __str__(self):
@@ -133,9 +124,6 @@ class PurchaseOrder(models.Model):
     order_date = models.DateTimeField(blank=True, null=True)
     po_number = models.ForeignKey(PurchaseDocuments, models.CASCADE, db_column='po_number', blank=True, null=True)
 
-    class Meta:
-        db_table = 'purchase_order'
-
     def __str__(self):
         return self.po_number
 
@@ -143,9 +131,6 @@ class Room(models.Model):
     room_id = models.CharField(max_length=255)
     building = models.CharField(max_length=255, blank=True, null=True)
     floor = models.CharField(max_length=255, blank=True, null=True)
-
-    class Meta:
-        db_table = 'room'
 
     def __str__(self):
         return self.building + "-" + self.floor.rjust(2, "0") + "-" + self.room_id
@@ -157,9 +142,6 @@ class Vendor(models.Model):
     contact_name = models.CharField(max_length=255, blank=True, null=True)
     contact_email = models.EmailField()
     contact_phone = models.CharField(max_length=255, blank=True, null=True)
-
-    class Meta:
-        db_table = 'vendor'
 
     def __str__(self):
         return self.vendor
