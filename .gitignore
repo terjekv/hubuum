@@ -1,0 +1,6 @@
+__pycache__
+.python-version
+__pycache__
+*.sqlite3
+*.sql
+env
