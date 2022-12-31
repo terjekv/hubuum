@@ -9,10 +9,18 @@ router = routers.DefaultRouter()
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
     path('', include(router.urls)),
+
+    path('api/v1/users', views.UserList.as_view()),
+    path('api/v1/user/<lookup_value>', views.UserDetail.as_view()),
+
+    path('api/v1/groups', views.GroupList.as_view()),
+    path('api/v1/group/<lookup_value>', views.GroupDetail.as_view()),
+
+
 #    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 #    path('api/v1/token-auth/', tokens.ObtainExpiringAuthToken.as_view()),
     path('api/v1/hosts', views.HostList.as_view()),
-    path('api/v1/host/<int:pk>', views.Host.as_view(), name="host-detail"),
+    path('api/v1/host/<lookup_value>', views.Host.as_view(), name="host-detail"),
     path('api/v1/externals', views.ExternalSourceList.as_view()),
     path('api/v1/external/<int:pk>', views.ExternalSource.as_view(), name="externals-detail"),
     path('api/v1/hosttypes', views.HostTypeList.as_view()),

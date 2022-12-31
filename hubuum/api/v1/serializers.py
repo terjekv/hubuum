@@ -1,14 +1,35 @@
+from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 
-from hubuum.models import *
+from hubuum.models import (Host, ExternalSource, DetectedHostData, HostType, Room, Jack, Vendor,
+    Person, PurchaseOrder, PurchaseDocuments)
 
-# serializers.HyperlinkedModelSerializer
+class UserSerializer(serializers.ModelSerializer):
+#    def create(self, validated_data):
+#        user = User.objects.create_user(**validated_data)
+#        return user
+
+    class Meta:
+        model = User
+        fields = '__all__'
+
+class GroupSerializer(serializers.ModelSerializer):
+#    def create(self, validated_data):
+#        group = Group.objects.create_user(**validated_data)
+#        return group
+    class Meta:
+        model = Group
+        fields = '__all__'
+
 class HostSerializer(serializers.ModelSerializer):
+# serializers.HyperlinkedModelSerializer
 #    externals = serializers.SerializerMethodField()
+#    _mod_dns = serializers.PrimaryKeyRelatedField(many=True, queryset=Snippet.objects.all())
 
     class Meta:
         model = Host
         fields = '__all__'
+        # fields = ['id', 'name', '_mod_dns']
 
 #    def get_externals(self, obj):
 #        associated_externals = DetectedHostData.get_externals_for_host(obj.id)

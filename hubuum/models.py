@@ -6,16 +6,20 @@
 #   * Remove `managed = False` lines if you wish to allow Django to create, modify, and delete the table
 # Feel free to rename the models, but don't rename db_table values or field names.
 
+# from datetime import datetime
+
 from django.db import models
 
 class Host(models.Model):
-    name = models.CharField(max_length=255, blank=True, null=True)
-    type = models.ForeignKey('HostType', models.CASCADE, blank=True, null=True)
+    name = models.CharField(max_length=255)
+    fqdn = models.CharField(max_length=255, blank=True, null=True)
+    type = models.ForeignKey('HostType', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
     serial = models.CharField(max_length=255, blank=True, null=True)
-    registration_date = models.DateTimeField(blank=True, null=True)
-    room = models.ForeignKey('Room', models.CASCADE, blank=True, null=True)
-    jack = models.ForeignKey('Jack', models.CASCADE, blank=True, null=True)
-    purchase_order = models.ForeignKey('PurchaseOrder', models.CASCADE, blank=True, null=True)
+    registration_date = models.DateTimeField(auto_now_add=True)
+    room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
+    jack = models.ForeignKey('Jack', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
+    purchase_order = models.ForeignKey('PurchaseOrder', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
+    owner = models.ForeignKey('auth.Group', related_name='hosts', on_delete=models.CASCADE)
 #    fleet_id = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
@@ -41,7 +45,7 @@ class ExternalSource(models.Model):
 class DetectedHostData(models.Model):
     host_id = models.OneToOneField(Host, verbose_name="Host identifier", on_delete=models.CASCADE)
     source = models.OneToOneField(ExternalSource, on_delete=models.CASCADE)
-    dns = models.CharField(max_length=255, blank=True, null=True)
+    fqdn = models.CharField(max_length=255, blank=True, null=True)
     serial_number = models.CharField(max_length=50, blank=True, null=True)
     mac = models.CharField(max_length=20, blank=True, null=True)  # https://github.com/django-macaddress/django-macaddress
     ipv4_address = models.GenericIPAddressField(blank=True, null=True, protocol="IPv4")

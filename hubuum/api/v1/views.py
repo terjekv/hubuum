@@ -1,5 +1,11 @@
-from url_filter.integrations.drf import DjangoFilterBackend
+from ipaddress import ip_address
+
+from django.contrib.auth.models import User, Group
+from django.http import Http404
+# from django.shortcuts import get
 from rest_framework import generics
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from url_filter.integrations.drf import DjangoFilterBackend
 
 # Default
 # from rest_framework.permissions import IsAuthenticated
@@ -13,17 +19,73 @@ from rest_framework import generics
 # from url_filter.filtersets import ModelFilterSet
 # from rest_framework import viewsets
 
-from .serializers import *
-from hubuum.models import *
+from hubuum.models import (Host, ExternalSource, DetectedHostData, HostType, Room, Jack, Vendor,
+    Person, PurchaseOrder, PurchaseDocuments)
+
+from .serializers import (HostSerializer, ExternalSourceSerializer, DetectedHostDataSerializer,
+    HostTypeSerializer, RoomSerializer, JackSerializer, VendorSerializer, PersonSerializer,
+    PurchaseOrderSerializer, PurchaseDocumentsSerializer, UserSerializer, GroupSerializer)
+
+def _post_requires_admin(self):
+    if self.request.method == 'POST':
+        permission_classes = [IsAdminUser]
+    else:
+        permission_classes = [IsAuthenticated]
+    return [permission() for permission in permission_classes]
+
+class MultipleFieldLookupORMixin(object):
+    def get_object(self):
+        queryset = self.get_queryset()
+        object = None
+        value = self.kwargs['lookup_value']
+        for field in self.lookup_fields:
+            try:
+                # https://stackoverflow.com/questions/9122169/calling-filter-with-a-variable-for-field-name
+                # No, just no.
+                object = queryset.get(**{field: value})
+            except Exception:
+                pass
+
+        if object == None:
+            raise Http404()
+
+        return object
+
+class UserList(generics.ListCreateAPIView):
+    permission_classes = [IsAdminUser]
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    def get_permissions(self):
+        return _post_requires_admin(self)
+
+class UserDetail(MultipleFieldLookupORMixin, generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+    lookup_fields = ('id', 'username', 'email')
+
+class GroupList(generics.ListCreateAPIView):
+    permission_classes = [IsAdminUser]
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+
+    def get_permissions(self):
+        return _post_requires_admin(self)
+
+class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveAPIView):
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    lookup_fields = ('id', 'name')
 
 class HostList(generics.ListCreateAPIView):
     queryset = Host.objects.all().order_by('id')
     serializer_class = HostSerializer
     filter_backends = [DjangoFilterBackend]
 
-class Host(generics.RetrieveUpdateDestroyAPIView):
+class Host(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Host.objects.all()
     serializer_class = HostSerializer
+    lookup_fields = ('id', 'name', 'fqdn')
 
 class ExternalSource(generics.RetrieveUpdateDestroyAPIView):
     queryset = ExternalSource.objects.all()
