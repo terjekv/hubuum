@@ -1,5 +1,5 @@
 from rest_framework import filters
-from django.conf import settings
+from django.apps import apps
 
 class DjangoObjectPermissionsFilter(filters.BaseFilterBackend):
     perm_format = '%(app_label)s.view_%(model_name)s'
@@ -8,7 +8,7 @@ class DjangoObjectPermissionsFilter(filters.BaseFilterBackend):
     }
 
     def __init__(self):
-        assert 'guardian' in settings.INSTALLED_APPS, (
+        assert apps.is_installed("guardian"), (
             'Using DjangoObjectPermissionsFilter, '
             'but django-guardian is not installed.')
 
