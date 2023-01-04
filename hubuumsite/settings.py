@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'knox',
+    'guardian',
 ]
 
 MIDDLEWARE = [
@@ -87,6 +88,11 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated'
    ],
 }
+
+AUTHENTICATION_BACKENDS = (
+    'django.contrib.auth.backends.ModelBackend', # this is default
+    'guardian.backends.ObjectPermissionBackend',
+)
 
 REST_KNOX = {
   'TOKEN_TTL': timedelta(hours=24),

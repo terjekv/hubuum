@@ -5,7 +5,12 @@ from django.http import Http404
 # from django.shortcuts import get
 from rest_framework import generics
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from rest_framework.response import Response
 from url_filter.integrations.drf import DjangoFilterBackend
+from guardian.shortcuts import get_objects_for_user
+
+from hubuum.filters import DjangoObjectPermissionsFilter
+from hubuum.permissions import CustomObjectPermissions
 
 # Default
 # from rest_framework.permissions import IsAuthenticated
@@ -54,12 +59,11 @@ class MultipleFieldLookupORMixin(object):
 class UserList(generics.ListCreateAPIView):
     permission_classes = [IsAdminUser]
     queryset = User.objects.all()
-    serializer_class = UserSerializer
 
     def get_permissions(self):
         return _post_requires_admin(self)
 
-class UserDetail(MultipleFieldLookupORMixin, generics.RetrieveAPIView):
+class UserDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_fields = ('id', 'username', 'email')
@@ -72,7 +76,7 @@ class GroupList(generics.ListCreateAPIView):
     def get_permissions(self):
         return _post_requires_admin(self)
 
-class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveAPIView):
+class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     lookup_fields = ('id', 'name')
@@ -80,7 +84,9 @@ class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveAPIView):
 class HostList(generics.ListCreateAPIView):
     queryset = Host.objects.all().order_by('id')
     serializer_class = HostSerializer
-    filter_backends = [DjangoFilterBackend]
+#    filter_backends = [DjangoFilterBackend]
+    permission_classes = (CustomObjectPermissions,)
+    filter_backends = (DjangoObjectPermissionsFilter,)
 
 class Host(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Host.objects.all()

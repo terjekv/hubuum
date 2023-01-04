@@ -25,6 +25,14 @@ class Host(models.Model):
     def __str__(self):
         return self.name
 
+    class Meta:
+        permissions = (
+            ('hubuum.add_host', 'User can add hosts'),
+            ('hubuum.change_host', 'User can patch hosts'),
+            ('hubuum.view_host', 'User can read the host'),
+            ('hubuum.delete_host', 'User can delete the host'),
+        )    
+
 # Unique names sounds like a good idea, but "bob's laptop" might happen repeatedly. 
 # Serial numbers are also only vendor-unique...
 #    class Meta:
