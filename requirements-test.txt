@@ -1,0 +1,14 @@
+Django>3
+django_rest_knox
+django-guardian
+django_url_filter
+djangorestframework
+knox
+
+psycopg2-binary
+pyyaml
+uritemplate
+
+pytest
+SQLAlchemy
+mongoengine
