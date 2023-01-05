@@ -46,6 +46,6 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install tox tox-gh-actions
     - name: Test tox itself
-      run: tox -r -vv --notest
+      run: tox -r --notest
     - name: Test with tox
-      run: tox r -vvvv 
+      run: tox r
