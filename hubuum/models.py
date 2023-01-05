@@ -10,30 +10,50 @@
 
 from django.db import models
 
+
 class Host(models.Model):
     name = models.CharField(max_length=255)
     fqdn = models.CharField(max_length=255, blank=True, null=True)
-    type = models.ForeignKey('HostType', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
+    type = models.ForeignKey(
+        "HostType",
+        on_delete=models.CASCADE,
+        related_name="hosts",
+        blank=True,
+        null=True,
+    )
     serial = models.CharField(max_length=255, blank=True, null=True)
     registration_date = models.DateTimeField(auto_now_add=True)
-    room = models.ForeignKey('Room', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
-    jack = models.ForeignKey('Jack', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
-    purchase_order = models.ForeignKey('PurchaseOrder', on_delete=models.CASCADE, related_name="hosts", blank=True, null=True)
-    owner = models.ForeignKey('auth.Group', related_name='hosts', on_delete=models.CASCADE)
-#    fleet_id = models.IntegerField(blank=True, null=True)
+    room = models.ForeignKey(
+        "Room", on_delete=models.CASCADE, related_name="hosts", blank=True, null=True
+    )
+    jack = models.ForeignKey(
+        "Jack", on_delete=models.CASCADE, related_name="hosts", blank=True, null=True
+    )
+    purchase_order = models.ForeignKey(
+        "PurchaseOrder",
+        on_delete=models.CASCADE,
+        related_name="hosts",
+        blank=True,
+        null=True,
+    )
+    owner = models.ForeignKey(
+        "auth.Group", related_name="hosts", on_delete=models.CASCADE
+    )
+    #    fleet_id = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return self.name
 
     class Meta:
         permissions = (
-            ('hubuum.add_host', 'User can add hosts'),
-            ('hubuum.change_host', 'User can patch hosts'),
-            ('hubuum.view_host', 'User can read the host'),
-            ('hubuum.delete_host', 'User can delete the host'),
-        )    
+            ("hubuum.add_host", "User can add hosts"),
+            ("hubuum.change_host", "User can patch hosts"),
+            ("hubuum.view_host", "User can read the host"),
+            ("hubuum.delete_host", "User can delete the host"),
+        )
 
-# Unique names sounds like a good idea, but "bob's laptop" might happen repeatedly. 
+
+# Unique names sounds like a good idea, but "bob's laptop" might happen repeatedly.
 # Serial numbers are also only vendor-unique...
 #    class Meta:
 #        constraints = [
@@ -41,6 +61,7 @@ class Host(models.Model):
 #                fields=['name'], name="unique_hostname_constraint",
 #            )
 #        ]
+
 
 class ExternalSource(models.Model):
     service_name = models.CharField(max_length=255)
@@ -50,12 +71,17 @@ class ExternalSource(models.Model):
     def __str__(self):
         return self.service_name
 
+
 class DetectedHostData(models.Model):
-    host_id = models.OneToOneField(Host, verbose_name="Host identifier", on_delete=models.CASCADE)
+    host_id = models.OneToOneField(
+        Host, verbose_name="Host identifier", on_delete=models.CASCADE
+    )
     source = models.OneToOneField(ExternalSource, on_delete=models.CASCADE)
     fqdn = models.CharField(max_length=255, blank=True, null=True)
     serial_number = models.CharField(max_length=50, blank=True, null=True)
-    mac = models.CharField(max_length=20, blank=True, null=True)  # https://github.com/django-macaddress/django-macaddress
+    mac = models.CharField(
+        max_length=20, blank=True, null=True
+    )  # https://github.com/django-macaddress/django-macaddress
     ipv4_address = models.GenericIPAddressField(blank=True, null=True, protocol="IPv4")
     ipv6_address = models.GenericIPAddressField(blank=True, null=True, protocol="IPv6")
     memory = models.IntegerField(blank=True, null=True)
@@ -77,13 +103,13 @@ class DetectedHostData(models.Model):
         verbose_name_plural = "detected host Data"
         constraints = [
             models.UniqueConstraint(
-                fields=['host_id', 'source'], name='host_id_and_source_combination'
+                fields=["host_id", "source"], name="host_id_and_source_combination"
             )
         ]
 
     def __str__(self):
-        return Host.objects.get(pk = self.id).name + "+" + self.source
-    
+        return Host.objects.get(pk=self.id).name + "+" + self.source
+
     # Should also support other identifiers?
     @staticmethod
     def get_externals_for_host(hostid):
@@ -93,6 +119,7 @@ class DetectedHostData(models.Model):
             objects = []
         return DetectedHostData.objects.get(hostid=hostid)
 
+
 class HostType(models.Model):
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
@@ -100,29 +127,38 @@ class HostType(models.Model):
     def __str__(self):
         return self.name
 
+
 class Jack(models.Model):
     name = models.CharField(max_length=255)
-    room = models.ForeignKey('Room', models.CASCADE, db_column='room', blank=True, null=True)
+    room = models.ForeignKey(
+        "Room", models.CASCADE, db_column="room", blank=True, null=True
+    )
     building = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.name
 
+
 class Person(models.Model):
     username = models.CharField(max_length=255)
-    room = models.ForeignKey('Room', models.CASCADE, db_column='room', blank=True, null=True)
+    room = models.ForeignKey(
+        "Room", models.CASCADE, db_column="room", blank=True, null=True
+    )
     section = models.IntegerField(blank=True, null=True)
     department = models.CharField(max_length=255, blank=True, null=True)
-    email = models.EmailField(),
+    email = (models.EmailField(),)
     office_phone = models.CharField(max_length=255, blank=True, null=True)
     mobile_phone = models.CharField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.username
 
+
 class PurchaseDocuments(models.Model):
     document_id = models.CharField(max_length=255)
-    purchase_order = models.ForeignKey("PurchaseOrder", models.CASCADE, blank=False, null=False)
+    purchase_order = models.ForeignKey(
+        "PurchaseOrder", models.CASCADE, blank=False, null=False
+    )
     document = models.BinaryField(blank=False, null=False)
 
     class Meta:
@@ -131,13 +167,19 @@ class PurchaseDocuments(models.Model):
     def __str__(self):
         return self.document_id
 
+
 class PurchaseOrder(models.Model):
-    vendor = models.ForeignKey('Vendor', models.CASCADE, db_column='vendor', blank=True, null=True)
+    vendor = models.ForeignKey(
+        "Vendor", models.CASCADE, db_column="vendor", blank=True, null=True
+    )
     order_date = models.DateTimeField(blank=True, null=True)
-    po_number = models.ForeignKey(PurchaseDocuments, models.CASCADE, db_column='po_number', blank=True, null=True)
+    po_number = models.ForeignKey(
+        PurchaseDocuments, models.CASCADE, db_column="po_number", blank=True, null=True
+    )
 
     def __str__(self):
         return self.po_number
+
 
 class Room(models.Model):
     room_id = models.CharField(max_length=255)
@@ -146,6 +188,7 @@ class Room(models.Model):
 
     def __str__(self):
         return self.building + "-" + self.floor.rjust(2, "0") + "-" + self.room_id
+
 
 class Vendor(models.Model):
     vendor_name = models.CharField(max_length=255)
