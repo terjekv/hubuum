@@ -105,7 +105,7 @@ REST_KNOX = {
 #    }
 # }
 
-if os.environ.get("GITHUB_ACTION"):
+if os.environ.get("GITHUB_ACTION") or os.environ.get("GITHUB_WORKFLOW"):
     print("Setting database for github actions...")
     DATABASES = {
         "default": {
