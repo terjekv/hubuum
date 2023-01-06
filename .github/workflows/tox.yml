@@ -1,4 +1,4 @@
-name: Check
+name: Tox tests
 
 on:
   - push
