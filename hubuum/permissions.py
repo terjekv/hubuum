@@ -1,7 +1,10 @@
+"""Permissions module for hubuum."""
 from rest_framework import permissions
 
 
 class CustomObjectPermissions(permissions.DjangoObjectPermissions):
+    """View especially is default for most modern Djangos, but we're being explicit here."""
+
     perms_map = {
         "GET": ["%(app_label)s.view_%(model_name)s"],
         "OPTIONS": ["%(app_label)s.view_%(model_name)s"],

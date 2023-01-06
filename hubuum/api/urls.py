@@ -1,3 +1,5 @@
+"""Non-versioned URLs for hubuum."""
+
 from django.urls import re_path
 from knox import views as knox_views
 

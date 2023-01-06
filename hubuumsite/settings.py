@@ -14,7 +14,8 @@ import os
 from pathlib import Path
 
 from datetime import timedelta
-from rest_framework.settings import api_settings
+
+# from rest_framework.settings import api_settings
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
@@ -35,7 +36,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
-    "hubuum.apps.hubuumApiConfig",
+    "hubuum.apps.HubuumApiConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
