@@ -10,5 +10,6 @@ pyyaml
 uritemplate
 
 pytest
+pytest-django
 SQLAlchemy
 mongoengine
