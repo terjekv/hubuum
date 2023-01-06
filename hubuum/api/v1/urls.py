@@ -1,3 +1,5 @@
+"""Versioned (v1) URLs for hubuum."""
+
 from django.urls import include, path
 from rest_framework import routers
 from . import views
@@ -17,12 +19,12 @@ urlpatterns = [
     #    path('api/v1/token-auth/', tokens.ObtainExpiringAuthToken.as_view()),
     path("api/v1/hosts", views.HostList.as_view()),
     path("api/v1/host/<lookup_value>", views.Host.as_view(), name="host-detail"),
-    path("api/v1/externals", views.ExternalSourceList.as_view()),
-    path(
-        "api/v1/external/<int:pk>",
-        views.ExternalSource.as_view(),
-        name="externals-detail",
-    ),
+    #    path("api/v1/externals", views.ExternalSourceList.as_view()),
+    #    path(
+    #        "api/v1/external/<int:pk>",
+    #        views.ExternalSource.as_view(),
+    #        name="externals-detail",
+    #    ),
     path("api/v1/hosttypes", views.HostTypeList.as_view()),
     path("api/v1/hosttype/<str:pk>", views.HostType.as_view(), name="hosttype-detail"),
     path("api/v1/rooms", views.RoomList.as_view()),

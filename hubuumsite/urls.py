@@ -1,3 +1,5 @@
+"""Core URLs for the hubuum project, site configuration."""
+
 from django.contrib import admin
 from django.urls import path, include
 
