@@ -57,12 +57,31 @@ from .serializers import (
 )
 
 
-def _post_requires_admin(self):
-    if self.request.method == "POST":
+def _write_actions():
+    return ["POST", "DELETE", "PATCH"]
+
+
+def _write_actions_require_admin(self):
+    return _actions_requires_admin(self, _write_actions())
+
+
+def _actions_requires_admin(self, actions):
+    if self.request.method in actions:
         permission_classes = [IsAdminUser]
     else:
         permission_classes = [IsAuthenticated]
     return [permission() for permission in permission_classes]
+
+
+class WriteActionsRequireAdminMixin(object):
+    """A mixin that ensures that only admins can perform actions.
+
+    Everyone authenticated is given view/read access.
+    """
+
+    def get_permissions(self):
+        """Restrict destructive actions to admin."""
+        return _write_actions_require_admin(self)
 
 
 class MultipleFieldLookupORMixin(object):
@@ -103,18 +122,18 @@ class MultipleFieldLookupORMixin(object):
         return object
 
 
-class UserList(generics.ListCreateAPIView):
+class UserList(WriteActionsRequireAdminMixin, generics.ListCreateAPIView):
     """Get: List users. Post: Add user."""
 
-    permission_classes = [IsAdminUser]
     queryset = User.objects.all()
-
-    def get_permissions(self):
-        """Restrict user creation (post) to admin."""
-        return _post_requires_admin(self)
+    serializer_class = UserSerializer
 
 
-class UserDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+class UserDetail(
+    WriteActionsRequireAdminMixin,
+    MultipleFieldLookupORMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
     """Get, Patch, or Destroy a user."""
 
     queryset = User.objects.all()
@@ -122,21 +141,20 @@ class UserDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIVi
     lookup_fields = ("id", "username", "email")
 
 
-class GroupList(generics.ListCreateAPIView):
+class GroupList(WriteActionsRequireAdminMixin, generics.ListCreateAPIView):
     """Get: List groups. Post: Add group."""
 
-    permission_classes = [IsAdminUser]
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-
-    def get_permissions(self):
-        """Restrict group creation (post) to admin."""
-        return _post_requires_admin(self)
 
 
 # 5
 # TODO: Should we restrict patch and destroy of users and groups to admins? Probably.
-class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+class GroupDetail(
+    WriteActionsRequireAdminMixin,
+    MultipleFieldLookupORMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
     """Get, Patch, or Destroy a group."""
 
     queryset = Group.objects.all()
