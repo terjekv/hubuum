@@ -57,6 +57,20 @@ class HostSerializer(serializers.ModelSerializer):
         fields = "__all__"
         # fields = ['id', 'name', '_mod_dns']
 
+    def validate(self, attrs):
+        request = self.context.get("request", None)
+        user = request.user
+        group = attrs["owner"]
+
+        print("Checking if %(user)s is a member of %(group)s")
+
+        if not (user.groups.filter(id=group.id).exists() or user.is_superuser):
+            raise serializers.ValidationError(
+                "User is not a member of the requested group."
+            )
+
+        return super().validate(attrs)
+
 
 #    def get_externals(self, obj):
 #        associated_externals = DetectedHostData.get_externals_for_host(obj.id)
