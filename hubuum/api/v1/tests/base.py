@@ -1,4 +1,4 @@
-"""Provide a base class for testing."""
+"""Provide a base class for testing api/v1."""
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -8,12 +8,7 @@ from rest_framework.test import APIClient, APITestCase
 from knox.models import AuthToken
 
 from hubuum.models import Host
-
-
-class MissingParam(Exception):
-    """An exception thrown when a parameter is missing."""
-
-    pass
+from hubuum.exceptions import MissingParam
 
 
 # This testsuite design is based on the testsuite for MREG:

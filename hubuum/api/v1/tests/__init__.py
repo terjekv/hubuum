@@ -1,1 +1,1 @@
-"""The hubuum.api.v1.test package."""
+"""The hubuum.api.v1.tests package."""

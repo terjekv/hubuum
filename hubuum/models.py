@@ -150,6 +150,9 @@ class HostType(models.Model):
 
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
+    owner = models.ForeignKey(
+        "auth.Group", related_name="hosttypes", on_delete=models.DO_NOTHING
+    )
 
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
@@ -173,6 +176,10 @@ class Jack(models.Model):
     )
     building = models.CharField(max_length=255, blank=True, null=True)
 
+    owner = models.ForeignKey(
+        "auth.Group", related_name="jacks", on_delete=models.DO_NOTHING
+    )
+
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
         return self.name
@@ -190,9 +197,13 @@ class Person(models.Model):
     )
     section = models.IntegerField(blank=True, null=True)
     department = models.CharField(max_length=255, blank=True, null=True)
-    email = (models.EmailField(),)
+    email = models.EmailField(blank=True, null=True)
     office_phone = models.CharField(max_length=255, blank=True, null=True)
     mobile_phone = models.CharField(max_length=255, blank=True, null=True)
+
+    owner = models.ForeignKey(
+        "auth.Group", related_name="persons", on_delete=models.DO_NOTHING
+    )
 
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
@@ -210,6 +221,10 @@ class PurchaseDocuments(models.Model):
         "PurchaseOrder", models.CASCADE, blank=False, null=False
     )
     document = models.BinaryField(blank=False, null=False)
+
+    owner = models.ForeignKey(
+        "auth.Group", related_name="purchasedocuments", on_delete=models.DO_NOTHING
+    )
 
     class Meta:
         """Set permissions and other metadata."""
@@ -233,13 +248,15 @@ class PurchaseOrder(models.Model):
         "Vendor", models.CASCADE, db_column="vendor", blank=True, null=True
     )
     order_date = models.DateTimeField(blank=True, null=True)
-    po_number = models.ForeignKey(
-        PurchaseDocuments, models.CASCADE, db_column="po_number", blank=True, null=True
+    po_number = models.CharField(max_length=255, blank=False, null=False)
+
+    owner = models.ForeignKey(
+        "auth.Group", related_name="purchaseorders", on_delete=models.DO_NOTHING
     )
 
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
-        return self.po_number
+        return str(self.po_number)
 
 
 class Room(models.Model):
@@ -253,6 +270,10 @@ class Room(models.Model):
     room_id = models.CharField(max_length=255)
     building = models.CharField(max_length=255, blank=True, null=True)
     floor = models.CharField(max_length=255, blank=True, null=True)
+
+    owner = models.ForeignKey(
+        "auth.Group", related_name="rooms", on_delete=models.DO_NOTHING
+    )
 
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
@@ -272,6 +293,10 @@ class Vendor(models.Model):
     contact_email = models.EmailField()
     contact_phone = models.CharField(max_length=255, blank=True, null=True)
 
+    owner = models.ForeignKey(
+        "auth.Group", related_name="vendors", on_delete=models.DO_NOTHING
+    )
+
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
-        return self.vendor
+        return self.vendor_name
