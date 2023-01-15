@@ -1,9 +1,10 @@
 Django>3
 django_rest_knox
 django-guardian
-django_url_filter
+dj_url_filter
 djangorestframework
 knox
+six
 
 psycopg2-binary
 pyyaml
