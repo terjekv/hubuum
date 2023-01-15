@@ -45,14 +45,14 @@ jobs:
           COVERALLS_FLAG_NAME: python-${{ matrix.python-version }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-    finish:
-      name: Coveralls Completed
-      needs: coveralls
-      runs-on: ubuntu-latest
-      container:
-        image: thekevjames/coveralls
-      steps:
-        - name: Coveralls Finish
-          run: coveralls --finish
-          env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  finish:
+    name: Coveralls Completed
+    needs: coveralls
+    runs-on: ubuntu-latest
+    container:
+      image: thekevjames/coveralls
+    steps:
+      - name: Coveralls Finish
+        run: coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
