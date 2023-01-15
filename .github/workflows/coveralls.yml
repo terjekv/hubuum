@@ -4,11 +4,9 @@ on:
   - push
   - pull_request
 
-coveralls:
-    if: ${{ github.event_name == 'pull_request' || github.repository == 'terjekv/hubuum' }}
-    name: Coveralls
-    needs: tox
-    runs-on: ${{ matrix.os }}
+jobs:
+  coveralls:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         os: [ubuntu-latest]
