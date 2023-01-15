@@ -16,7 +16,7 @@ class APITokenAuthenticationTestCase(HubuumAPITestCase):
     def test_logout(self):
         """Test authenticated logout."""
         self.assert_get("/hosts/")
-        # TODO: Note that logout returns 200 in normal django context,
+        # TODO: #17 Note that logout returns 200 in normal django context,
         self.assert_post_and_204("/api/auth/logout/")
         self.assert_get_and_401("/hosts/")
 
@@ -54,7 +54,7 @@ class APITokenAuthenticationTestCase(HubuumAPITestCase):
         self.assert_post_and_401(
             "/api/auth/login/", {"username": "someone", "password": "incorrect"}
         )
-        # TODO: This returns 401, we should check inputs in the login view.
+        # TODO: #16 This returns 401, we should check inputs in the login view.
         #        """ Incorrect or missing arguments should still return 400 bad request """
         #        self.assert_post_and_400(
         #            "/api/auth/logout/", {"who": "someone", "why": "because"}
