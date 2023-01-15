@@ -84,6 +84,7 @@ DEFAULT_AUTO_FIELD = "django.db.models.AutoField"
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ("knox.auth.TokenAuthentication",),
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
 }
 
 AUTHENTICATION_BACKENDS = (
