@@ -1,7 +1,13 @@
+name: Coveralls
+
+on:
+  - push
+  - pull_request
+
 coveralls:
     if: ${{ github.event_name == 'pull_request' || github.repository == 'terjekv/hubuum' }}
     name: Coveralls
-    needs: test
+    needs: tox
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
