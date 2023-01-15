@@ -10,7 +10,9 @@ psycopg2-binary
 pyyaml
 uritemplate
 
+tox
 pytest
 pytest-django
 SQLAlchemy
 mongoengine
+coveralls
