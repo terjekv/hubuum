@@ -1,4 +1,4 @@
-name: Tox tests
+name: Tox tests with coverage
 
 on:
   - push
@@ -26,13 +26,13 @@ jobs:
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 #    - name: Set up Python 3.10
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
-      with:
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
 #        python-version: "3.10"
-        python-version: ${{ matrix.python-version }}
+          python-version: ${{ matrix.python-version }}
 #    - name: Install tox-gh
 #      run: python -m pip install tox-gh
 #    - name: Setup test suite
@@ -41,11 +41,83 @@ jobs:
 #      run: tox4 r --skip-pkg-install
 #      env:
 #        PYTEST_ADDOPTS: "-vv --durations=10"
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install tox tox-gh-actions
-    - name: Test tox itself
-      run: tox -r --notest
-    - name: Test with tox
-      run: tox r
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install tox tox-gh-actions
+      - name: Test tox itself
+        run: tox -r --notest
+      - name: Test with tox
+        run: tox r
+      - name: Check migrations
+        run: python manage.py makemigrations --check
+      - name: Export OpenAPI schema
+        run: python manage.py generateschema > openapi.yml
+      - name: Test coverage
+        run: coverage run --source hubuum --module pytest hubuum
+      - name: Upload OpenAPI schema
+        if: matrix.python-version == '3.10'
+        uses: actions/upload-artifact@v3
+        with:
+          name: openapi.yml
+          path: openapi.yml
+      - name: Upload coverage
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-${{ matrix.python-version }}
+          path: .coverage
+
+  coveralls:
+    if: ${{ github.event_name == 'pull_request' || github.repository == 'terjekv/hubuum' }}
+    name: Coveralls
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version:
+          - '3.9'
+          - '3.10'
+          - '3.11'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: v1-pip-${{ runner.os }}-${{ matrix.python-version }}
+          restore-keys: |
+            v1-pip-${{ runner.os }}
+            v1-pip-
+      - name: Install Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Download coverage
+        uses: actions/download-artifact@v3
+        with:
+          name: coverage-${{ matrix.python-version }}
+      - name: Install Coveralls
+        run: pip install coveralls
+      - name: Run Coveralls
+        run: coveralls
+        env:
+          # Note: Set service name to work around
+          # https://github.com/TheKevJames/coveralls-python/issues/252
+          COVERALLS_SERVICE_NAME: github
+          COVERALLS_PARALLEL: true
+          COVERALLS_FLAG_NAME: python-${{ matrix.python-version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  finish:
+    name: Coveralls Completed
+    needs: coveralls
+    runs-on: ubuntu-latest
+    container:
+      image: thekevjames/coveralls
+    steps:
+      - name: Coveralls Finish
+        run: coveralls --finish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
