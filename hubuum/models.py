@@ -197,7 +197,7 @@ class Person(models.Model):
     )
     section = models.IntegerField(blank=True, null=True)
     department = models.CharField(max_length=255, blank=True, null=True)
-    email = (models.EmailField(),)
+    email = models.EmailField(blank=True, null=True)
     office_phone = models.CharField(max_length=255, blank=True, null=True)
     mobile_phone = models.CharField(max_length=255, blank=True, null=True)
 
