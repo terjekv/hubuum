@@ -56,7 +56,7 @@ jobs:
       - name: Export OpenAPI schema
         run: python manage.py generateschema > openapi.yml
       - name: Test coverage
-        run: coverage run --source hubuum --module pytest hubuum
+        run: DJANGO_SETTINGS_MODULE=hubuumsite.settings coverage run --source hubuum --module pytest hubuum
       - name: Upload OpenAPI schema
         if: matrix.python-version == '3.10'
         uses: actions/upload-artifact@v3
