@@ -7,7 +7,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from knox.models import AuthToken
 
-from hubuum.models import Host
+# from hubuum.models import Host
 from hubuum.exceptions import MissingParam
 
 
@@ -26,9 +26,9 @@ class HubuumAPITestCase(APITestCase):
 
     def get_adminuser_client(self):
         """Get a client for the adminuser."""
-        return self._get_token_client(adminuser=True, superuser=False)
+        return self._get_token_client(staff=True, superuser=False)
 
-    def get_user_client(self, username="nobody", groupname="test_nobody_group"):
+    def get_user_client(self, username=None, groupname="test_nobody_group"):
         """Get a client for a normal user.
 
         param: username (defaults to "nobody")
@@ -58,11 +58,11 @@ class HubuumAPITestCase(APITestCase):
             if superuser:
                 username = "superuser"
             elif staff:
-                username = "adminuser"
+                username = "staffuser"
             else:
                 username = "nobody"
 
-        self.user = get_user_model().objects.create_user(
+        self.user, created = get_user_model().objects.get_or_create(
             username=username, password="test"
         )
         self.user.groups.clear()
@@ -259,19 +259,19 @@ def clean_and_save(entity):
     entity.save()
 
 
-def create_host(name="testhost", ownergroup=None):
-    """Create a host with an owner, directly against the model.
-
-    params: name (defaults to "testhost")
-    params: ownergroup (no default, group object expected, required)
-    """
-    if not ownergroup:
-        raise MissingParam
-
-    if not isinstance(ownergroup, Group):
-        raise TypeError
-
-    return Host.objects.create(name=name, owner=ownergroup)
+# def create_host(name="testhost", ownergroup=None):
+#    """Create a host with an owner, directly against the model.
+#
+#    params: name (defaults to "testhost")
+#    params: ownergroup (no default, group object expected, required)
+#    """
+#    if not ownergroup:
+#        raise MissingParam
+#
+#    if not isinstance(ownergroup, Group):
+#        raise TypeError
+#
+#    return Host.objects.create(name=name, owner=ownergroup)
 
 
 # TODO: For every endpoint we should have and check input validation.
