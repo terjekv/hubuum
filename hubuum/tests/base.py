@@ -39,23 +39,19 @@ class HubuumModelTestCase(TestCase):
 
     def _test_can_create_object(self, model=None, **kwargs):
         """Create a generic object of any model."""
-        groupid = self.group
+        group = self.group
         if "owner" in kwargs:
-            groupid = kwargs["owner"]
+            group = kwargs.pop("owner")
 
-        return self._create_object(model=model, owner=groupid, **kwargs)
+        return self._create_object(model=model, owner=group, **kwargs)
 
     def _test_has_identical_values(self, object=None, dictionary=None):
         """Compare the dictionary with the same attributes from the self."""
-        if not object and dictionary:
+        if not (object and dictionary):
             raise MissingParam
 
         for key in dictionary.keys():
-            if key == "owner":
-                # We should probably verify that owner was set correctly...
-                pass
-            else:
-                self.assertEqual(getattr(object, key), dictionary[key])
+            self.assertEqual(getattr(object, key), dictionary[key])
 
     def _create_object(self, model=None, **kwargs):
         """Create an object with overridable default group ownership."""
