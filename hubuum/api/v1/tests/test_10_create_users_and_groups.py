@@ -27,6 +27,7 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         response = self.assert_get("/users/")
         self.assertEqual(len(response.data), 2)
 
+    # TODO: #30 Also test by email.
     def test_get_user_by_username(self):
         """Test getting of users by username."""
         self.client = self.get_staff_client()
