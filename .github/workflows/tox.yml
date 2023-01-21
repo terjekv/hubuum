@@ -26,6 +26,11 @@ jobs:
         # needed because the postgres container does not provide a healthcheck
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
 
+    env:
+      HUBUUM_DATABASE_USER: postgres
+      HUBUUM_DATABASE_PASSWORD: postgres
+      HUBUUM_DATABASE_NAME: github_actions
+
     steps:
       - uses: actions/checkout@v3
 #    - name: Set up Python 3.10
@@ -56,7 +61,7 @@ jobs:
       - name: Export OpenAPI schema
         run: python manage.py generateschema > openapi.yml
       - name: Test coverage
-        run: DJANGO_SETTINGS_MODULE=hubuumsite.settings coverage run --source hubuum --module pytest hubuum
+        run: coverage run manage.py test -v2
       - name: Upload OpenAPI schema
         if: matrix.python-version == '3.10'
         uses: actions/upload-artifact@v3
