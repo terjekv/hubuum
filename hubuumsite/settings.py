@@ -107,32 +107,18 @@ REST_KNOX = {
 #    }
 # }
 
-if os.environ.get("GITHUB_ACTION") or os.environ.get("GITHUB_WORKFLOW"):
-    print("Setting database for github actions...")
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": "github_actions",
-            "USER": "postgres",
-            "PASSWORD": "postgres",
-            "HOST": "127.0.0.1",
-            "PORT": "5432",
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": os.environ.get(
+            "HUBUUM_DATABASE_BACKEND", "django.db.backends.postgresql"
+        ),
+        "NAME": os.environ.get("HUBUUM_DATABASE_NAME", "hubuum"),
+        "USER": os.environ.get("HUBUUM_DATABASE_USER", "hubuum"),
+        "PASSWORD": os.environ.get("HUBUUM_DATABASE_PASSWORD"),
+        "HOST": os.environ.get("HUBUUM_DATABASE_HOST", "localhost"),
+        "PORT": int(os.environ.get("HUBUUM_DATABASE_PORT", 5432)),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": os.environ.get(
-                "HUBUUM_DATABASE_BACKEND", "django.db.backends.postgresql"
-            ),
-            "NAME": os.environ.get("HUBUUM_DATABASE_NAME", "hubuum"),
-            "USER": os.environ.get("HUBUUM_DATABASE_USER", "hubuum"),
-            "PASSWORD": os.environ.get("HUBUUM_DATABASE_PASSWORD"),
-            "HOST": os.environ.get("HUBUUM_DATABASE_HOST", "localhost"),
-            "PORT": int(os.environ.get("HUBUUM_DATABASE_PORT", 5432)),
-        }
-    }
-
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.1/ref/settings/#auth-password-validators
