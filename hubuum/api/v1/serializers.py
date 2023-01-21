@@ -1,8 +1,11 @@
 """Versioned (v1) serializers of the hubuum models."""
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from rest_framework import serializers
 
+# from hubuum.models_auth import User
+
 from hubuum.models import (
+    User,
     Host,
     #    ExternalSource,
     #    DetectedHostData,

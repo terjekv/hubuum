@@ -1,7 +1,7 @@
 """Versioned (v1) views for the hubuum models."""
 # from ipaddress import ip_address
 
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
 from django.http import Http404
 
 # from django.shortcuts import get
@@ -12,6 +12,8 @@ from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from url_filter.integrations.drf import DjangoFilterBackend
 
 # from guardian.shortcuts import get_objects_for_user
+
+from hubuum.models import User
 
 from hubuum.filters import DjangoObjectPermissionsFilter
 from hubuum.permissions import CustomObjectPermissions

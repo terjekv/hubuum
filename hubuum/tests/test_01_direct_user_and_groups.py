@@ -1,6 +1,8 @@
 """Test module: Users and Groups."""
 from django.test import TestCase
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import Group
+
+from hubuum.models import User
 
 
 class UserAndGroupTestCase(TestCase):
@@ -32,6 +34,3 @@ class UserAndGroupTestCase(TestCase):
         self.user.groups.set([self.group])
         self.assertEqual(self.user.groups.all()[0].name, self.groupname)
         self.assertCountEqual(self.user.groups.all(), [self.group])
-
-
-# login = self.client.login(username="testuser", password="12345")

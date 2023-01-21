@@ -1,17 +1,165 @@
-"""Models for the hubuum project.
-
-The core Host Model should be lean, and depend on other models for raw data.
-"""
+"""Models for the hubuum project."""
 # from datetime import datetime
+import re
 
 from django.db import models
 
+from django.contrib.auth.models import AbstractUser
 
-class Host(models.Model):
+# from hubuum.models import Permissions
+
+from hubuum.exceptions import MissingParam
+
+
+class User(AbstractUser):
+    """Extension to the default User class."""
+
+    _group_list = None
+
+    @property
+    def group_list(self):
+        """List the names of all the groups the user is a member of."""
+        if self._group_list is None:
+            self._group_list = list(self.groups.values_list("name", flat=True))
+        return self._group_list
+
+    def has_perm(self, perm: str, obj: object) -> bool:
+        """
+        Permissions check for an object.
+
+        perm: see permissions.py
+        obj: Hubuum Object
+
+        """
+        #        print("Self: <" + str(self) + ">")
+        #        print("Perm: <" + str(perm) + ">")
+        #        print("Obj: <" + str(obj) + "> (" + str(obj.__class__) + ")")
+
+        field = None
+        #        model = None
+
+        # We should test that operation and model have sane values.
+        p = re.compile(r"^hubuum.(\w+)_(\w+)$")
+        operation, model = re.match(p, perm).groups()
+        if operation and model:
+            field = "has_" + operation
+        #            model = m
+        else:
+            raise MissingParam(
+                "Unknown permission '{}' passed to has_perm".format(perm)
+            )
+
+        #        print("loop")
+        #        for group in self.groups.all():
+        #            print(group)
+        #            print(
+        #                Permissions.objects.filter(
+        #                    namespace=obj.namespace, group=group, **{field: True}
+        #                ).exists()
+        #            )
+
+        #        print("glob")
+
+        if obj:
+            return Permissions.objects.filter(
+                namespace=obj.namespace, **{field: True}, group__in=self.groups.all()
+            ).exists()
+        else:
+            # We're asking for a list of objects, which we can do.
+            # We might not get any results... But that's a different issue.
+            return True
+
+            # Find all namespaces we can perform the given operation in.
+
+
+#            print("List of {}".format(model))
+#            print(field)
+#            res = Permissions.objects.filter(
+#                **{field: True}, group__in=self.groups.all()
+#            )
+#            if not res:
+#                return
+#
+#            return apps.get_model("hubuum", model).objects.filter(
+#                namespace__in=res.namespace
+#            )
+
+
+class HubuumModel(models.Model):
+    """Base model for Hubuum Objects."""
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        """Meta data for the class."""
+
+        abstract = True
+
+
+class NamespacedHubuumModel(HubuumModel):
+    """Base model for a namespaced Hubuum Objects."""
+
+    namespace = models.ForeignKey(
+        "Namespace",
+        on_delete=models.DO_NOTHING,
+        blank=False,
+        null=False,
+    )
+
+    class Meta:
+        """Meta data for the class."""
+
+        abstract = True
+
+
+class Namespace(HubuumModel):
+    """The namespace ('domain') of an object."""
+
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+
+
+class Permissions(HubuumModel):
+    """
+    Permissions in Hubuum.
+
+    - Permissions are set by group.
+    - Objects belong to a namespace.
+    - Every namespace has zero or more groups with permissions for the namespace.
+
+    The permission `has_namespace` allows for the group to create new namespaces scoped
+    under the current one.
+
+    """
+
+    namespace = models.ForeignKey(
+        "Namespace", related_name="p_namespace", on_delete=models.CASCADE
+    )
+    group = models.ForeignKey(
+        "auth.Group", related_name="p_group", on_delete=models.CASCADE
+    )
+
+    has_create = models.BooleanField(null=False, default=False)
+    has_read = models.BooleanField(null=False, default=False)
+    has_update = models.BooleanField(null=False, default=False)
+    has_delete = models.BooleanField(null=False, default=False)
+    has_namespace = models.BooleanField(null=False, default=False)
+
+    class Meta:
+        """Metadata permissions."""
+
+        unique_together = (
+            "namespace",
+            "group",
+        )
+
+
+class Host(NamespacedHubuumModel):
     """Host model, a portal into hosts of any kind."""
 
     name = models.CharField(max_length=255)
-    fqdn = models.CharField(max_length=255, blank=True, null=True)
+    fqdn = models.CharField(max_length=255, blank=True)
     type = models.ForeignKey(
         "HostType",
         on_delete=models.DO_NOTHING,
@@ -19,7 +167,7 @@ class Host(models.Model):
         blank=True,
         null=True,
     )
-    serial = models.CharField(max_length=255, blank=True, null=True)
+    serial = models.CharField(max_length=255, blank=True)
     registration_date = models.DateTimeField(auto_now_add=True)
     room = models.ForeignKey(
         "Room", on_delete=models.DO_NOTHING, related_name="hosts", blank=True, null=True
@@ -43,26 +191,16 @@ class Host(models.Model):
         null=True,
     )
 
-    # Here's a doozy. If you delete the auth.group, we should probably assign another owner
-    # to every object they had. See https://github.com/terjekv/hubuum/issues/3
-    owner = models.ForeignKey(
-        "auth.Group", related_name="hosts", on_delete=models.DO_NOTHING
+    namespace = models.ForeignKey(
+        "Namespace",
+        on_delete=models.CASCADE,
+        null=False,
+        blank=False,
     )
-    #    fleet_id = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
         return self.name
-
-    class Meta:
-        """Set permissions and other metadata."""
-
-        permissions = (
-            ("hubuum.add_host", "User can add hosts"),
-            ("hubuum.change_host", "User can patch hosts"),
-            ("hubuum.view_host", "User can read the host"),
-            ("hubuum.delete_host", "User can delete the host"),
-        )
 
 
 # Unique names sounds like a good idea, but "bob's laptop" might happen repeatedly.
@@ -134,7 +272,7 @@ class Host(models.Model):
 #         return DetectedHostData.objects.get(hostid=hostid)
 
 
-class HostType(models.Model):
+class HostType(NamespacedHubuumModel):
     """The type of hosts supported.
 
     These are a touple of a short name and a description, ie:
@@ -149,17 +287,14 @@ class HostType(models.Model):
     """
 
     name = models.CharField(max_length=255)
-    description = models.TextField(blank=True, null=True)
-    owner = models.ForeignKey(
-        "auth.Group", related_name="hosttypes", on_delete=models.DO_NOTHING
-    )
+    description = models.TextField(blank=True)
 
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
         return self.name
 
 
-class Jack(models.Model):
+class Jack(NamespacedHubuumModel):
     """The wall end of a network jack.
 
     Like the marking of power outlets, there are standards for such things.
@@ -176,16 +311,12 @@ class Jack(models.Model):
     )
     building = models.CharField(max_length=255, blank=True, null=True)
 
-    owner = models.ForeignKey(
-        "auth.Group", related_name="jacks", on_delete=models.DO_NOTHING
-    )
-
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
         return self.name
 
 
-class Person(models.Model):
+class Person(NamespacedHubuumModel):
     """A person.
 
     Persons have rooms. Computers may have people. It's all very cozy.
@@ -201,16 +332,12 @@ class Person(models.Model):
     office_phone = models.CharField(max_length=255, blank=True, null=True)
     mobile_phone = models.CharField(max_length=255, blank=True, null=True)
 
-    owner = models.ForeignKey(
-        "auth.Group", related_name="persons", on_delete=models.DO_NOTHING
-    )
-
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
         return self.username
 
 
-class PurchaseDocuments(models.Model):
+class PurchaseDocuments(NamespacedHubuumModel):
     """Accounting, the documents of an order.
 
     The documents that came with a given purchase order.
@@ -222,10 +349,6 @@ class PurchaseDocuments(models.Model):
     )
     document = models.BinaryField(blank=False, null=False)
 
-    owner = models.ForeignKey(
-        "auth.Group", related_name="purchasedocuments", on_delete=models.DO_NOTHING
-    )
-
     class Meta:
         """Set permissions and other metadata."""
 
@@ -236,7 +359,7 @@ class PurchaseDocuments(models.Model):
         return self.document_id
 
 
-class PurchaseOrder(models.Model):
+class PurchaseOrder(NamespacedHubuumModel):
     """Accounting, the order.
 
     When something is bought there is typically some identifier for the purchase.
@@ -250,16 +373,12 @@ class PurchaseOrder(models.Model):
     order_date = models.DateTimeField(blank=True, null=True)
     po_number = models.CharField(max_length=255, blank=False, null=False)
 
-    owner = models.ForeignKey(
-        "auth.Group", related_name="purchaseorders", on_delete=models.DO_NOTHING
-    )
-
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
         return str(self.po_number)
 
 
-class Room(models.Model):
+class Room(NamespacedHubuumModel):
     """A room.
 
     Possibly with a view. If your room_id contains a floor or building identifier, feel free to
@@ -271,16 +390,12 @@ class Room(models.Model):
     building = models.CharField(max_length=255, blank=True, null=True)
     floor = models.CharField(max_length=255, blank=True, null=True)
 
-    owner = models.ForeignKey(
-        "auth.Group", related_name="rooms", on_delete=models.DO_NOTHING
-    )
-
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""
         return self.building + "-" + self.floor.rjust(2, "0") + "-" + self.room_id
 
 
-class Vendor(models.Model):
+class Vendor(NamespacedHubuumModel):
     """A vendor, they sell you things.
 
     Say thank you. Call your vendor today.
@@ -292,10 +407,6 @@ class Vendor(models.Model):
     contact_name = models.CharField(max_length=255, blank=True, null=True)
     contact_email = models.EmailField()
     contact_phone = models.CharField(max_length=255, blank=True, null=True)
-
-    owner = models.ForeignKey(
-        "auth.Group", related_name="vendors", on_delete=models.DO_NOTHING
-    )
 
     def __str__(self):
         """Stringify the object, used to represent the object towards users."""

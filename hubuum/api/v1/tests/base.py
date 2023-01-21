@@ -7,7 +7,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from knox.models import AuthToken
 
-# from hubuum.models import Host
+from hubuum.models import Namespace
 from hubuum.exceptions import MissingParam
 
 
@@ -80,6 +80,8 @@ class HubuumAPITestCase(APITestCase):
             self.add_user_to_groups(groupname)
 
         self.user.save()
+
+        self.namespace = Namespace.objects.create(name="test")
 
         # https://github.com/James1345/django-rest-knox/blob/develop/knox/models.py
         token = AuthToken.objects.create(self.user)

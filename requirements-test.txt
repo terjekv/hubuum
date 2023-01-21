@@ -1,6 +1,5 @@
 Django>3
 django_rest_knox
-django-guardian
 dj_url_filter
 djangorestframework
 knox

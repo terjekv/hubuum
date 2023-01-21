@@ -8,11 +8,13 @@ from django.contrib.auth import get_user_model
 from hubuum.exceptions import MissingParam
 
 from hubuum.models import (
+    Namespace,
     Room,
     Vendor,
     Person,
     PurchaseOrder,
     PurchaseDocuments,
+    #    Permissions,
 )
 
 
@@ -24,6 +26,7 @@ class HubuumModelTestCase(TestCase):
         self.username = "test"
         self.password = "test"
         self.groupname = "test"
+        self.namespacename = "test"
 
         self.user, created = get_user_model().objects.get_or_create(
             username=self.username, password=self.password
@@ -33,17 +36,21 @@ class HubuumModelTestCase(TestCase):
         self.group, created = Group.objects.get_or_create(name=self.groupname)
         self.assertIsNotNone(self.group)
 
+        self.namespace, created = Namespace.objects.get_or_create(
+            name=self.namespacename, description="Test namespace."
+        )
+        self.assertIsNotNone(self.namespace)
+
     def attribute(self, key):
         """Fetch attributes from the attribute dictionary."""
         return self.attributes[key]
 
     def _test_can_create_object(self, model=None, **kwargs):
         """Create a generic object of any model."""
-        group = self.group
-        if "owner" in kwargs:
-            group = kwargs.pop("owner")
+        if "namespace" not in kwargs:
+            kwargs["namespace"] = self.namespace
 
-        return self._create_object(model=model, owner=group, **kwargs)
+        return self._create_object(model=model, **kwargs)
 
     def _test_has_identical_values(self, object=None, dictionary=None):
         """Compare the dictionary with the same attributes from the self."""

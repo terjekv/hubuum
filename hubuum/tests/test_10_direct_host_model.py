@@ -22,8 +22,8 @@ class HostTestCase(HubuumModelTestCase):
         """Test that stringifying objects works as expected."""
         self._test_str()
 
-    def test_can_create_object_with_passed_group(self):
+    def test_can_create_object_with_passed_namespace(self):
         """Test that we can create an object with an explicit group owner passed."""
         self.object = self._test_can_create_object(
-            model=Host, owner=self.group, **self.attributes
+            model=Host, namespace=self.namespace, **self.attributes
         )
