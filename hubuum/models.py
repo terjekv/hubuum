@@ -14,6 +14,8 @@ from hubuum.exceptions import MissingParam
 class User(AbstractUser):
     """Extension to the default User class."""
 
+    permissons_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
+
     _group_list = None
 
     @property
@@ -39,8 +41,7 @@ class User(AbstractUser):
         #        model = None
 
         # We should test that operation and model have sane values.
-        p = re.compile(r"^hubuum.(\w+)_(\w+)$")
-        operation, model = re.match(p, perm).groups()
+        operation, model = re.match(User.permissons_pattern, perm).groups()
         if operation and model:
             field = "has_" + operation
         #            model = m
