@@ -3,6 +3,7 @@
 import re
 
 from django.db import models
+from django.apps import apps
 
 from django.contrib.auth.models import AbstractUser
 
@@ -14,7 +15,8 @@ from hubuum.exceptions import MissingParam
 class User(AbstractUser):
     """Extension to the default User class."""
 
-    permissons_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
+    permissions_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
+    permission_operations = ("create", "read", "update", "delete", "namespace")
 
     _group_list = None
 
@@ -25,7 +27,7 @@ class User(AbstractUser):
             self._group_list = list(self.groups.values_list("name", flat=True))
         return self._group_list
 
-    def has_perm(self, perm: str, obj: object) -> bool:
+    def has_perm(self, perm: str, obj: object = None) -> bool:
         """
         Permissions check for an object.
 
@@ -38,28 +40,24 @@ class User(AbstractUser):
         #        print("Obj: <" + str(obj) + "> (" + str(obj.__class__) + ")")
 
         field = None
-        #        model = None
 
-        # We should test that operation and model have sane values.
-        operation, model = re.match(User.permissons_pattern, perm).groups()
-        if operation and model:
+        try:
+            operation, model = re.match(User.permissions_pattern, perm).groups()
+        except AttributeError:
+            raise MissingParam(
+                "Unknown permission '{}' passed to has_perm".format(perm)
+            )
+        if (
+            (operation and model)
+            and (operation in User.permission_operations)
+            and (apps.get_model("hubuum", model))
+        ):
             field = "has_" + operation
         #            model = m
         else:
             raise MissingParam(
                 "Unknown permission '{}' passed to has_perm".format(perm)
             )
-
-        #        print("loop")
-        #        for group in self.groups.all():
-        #            print(group)
-        #            print(
-        #                Permissions.objects.filter(
-        #                    namespace=obj.namespace, group=group, **{field: True}
-        #                ).exists()
-        #            )
-
-        #        print("glob")
 
         if obj:
             return Permissions.objects.filter(
@@ -69,21 +67,6 @@ class User(AbstractUser):
             # We're asking for a list of objects, which we can do.
             # We might not get any results... But that's a different issue.
             return True
-
-            # Find all namespaces we can perform the given operation in.
-
-
-#            print("List of {}".format(model))
-#            print(field)
-#            res = Permissions.objects.filter(
-#                **{field: True}, group__in=self.groups.all()
-#            )
-#            if not res:
-#                return
-#
-#            return apps.get_model("hubuum", model).objects.filter(
-#                namespace__in=res.namespace
-#            )
 
 
 class HubuumModel(models.Model):
