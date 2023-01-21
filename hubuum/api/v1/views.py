@@ -13,8 +13,6 @@ from url_filter.integrations.drf import DjangoFilterBackend
 
 # from guardian.shortcuts import get_objects_for_user
 
-from hubuum.models import User
-
 from hubuum.filters import DjangoObjectPermissionsFilter
 from hubuum.permissions import CustomObjectPermissions
 
@@ -31,7 +29,9 @@ from hubuum.permissions import CustomObjectPermissions
 # from rest_framework import viewsets
 
 from hubuum.models import (
+    User,
     Host,
+    Namespace,
     #    ExternalSource,
     #    DetectedHostData,
     HostType,
@@ -45,6 +45,7 @@ from hubuum.models import (
 
 from .serializers import (
     HostSerializer,
+    NamespaceSerializer,
     #    ExternalSourceSerializer,
     #    DetectedHostDataSerializer,
     HostTypeSerializer,
@@ -180,6 +181,24 @@ class Host(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Host.objects.all()
     serializer_class = HostSerializer
     lookup_fields = ("id", "name", "fqdn")
+
+
+class NamespaceList(generics.ListCreateAPIView):
+    """Get: List Namespaces. Post: Add Namespace."""
+
+    queryset = Namespace.objects.all()
+    serializer_class = NamespaceSerializer
+    #    filter_backends = [DjangoFilterBackend]
+    permission_classes = (CustomObjectPermissions,)
+    filter_backends = (DjangoObjectPermissionsFilter,)
+
+
+class Namespace(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Get, Patch, or Destroy a host."""
+
+    queryset = Namespace.objects.all()
+    serializer_class = NamespaceSerializer
+    lookup_fields = ("id", "name")
 
 
 # class ExternalSource(generics.RetrieveUpdateDestroyAPIView):

@@ -17,6 +17,10 @@ urlpatterns = [
     path("group/<lookup_value>", views.GroupDetail.as_view()),
     #    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     #    path('token-auth/', tokens.ObtainExpiringAuthToken.as_view()),
+    path("namespaces/", views.NamespaceList.as_view()),
+    path(
+        "namespace/<lookup_value>", views.Namespace.as_view(), name="namespace-detail"
+    ),
     path("hosts/", views.HostList.as_view()),
     path("host/<lookup_value>", views.Host.as_view(), name="host-detail"),
     #    path("externals", views.ExternalSourceList.as_view()),

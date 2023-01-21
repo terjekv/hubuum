@@ -15,7 +15,7 @@ class APITokenAuthenticationTestCase(HubuumAPITestCase):
     def test_different_clients(self):
         """Test various client setups."""
         self.assertIsInstance(self.get_superuser_client(), APIClient)
-        self.assertIsInstance(self.get_adminuser_client(), APIClient)
+        self.assertIsInstance(self.get_staff_client(), APIClient)
         self.assertIsInstance(self.get_user_client(), APIClient)
         self.assertIsInstance(self.get_user_client(username="testuser"), APIClient)
 

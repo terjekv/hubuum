@@ -21,11 +21,11 @@ class HubuumAPITestCase(APITestCase):
         self.client = self.get_superuser_client()
 
     def get_superuser_client(self):
-        """Get a client for the superuser."""
+        """Get a client for a superuser."""
         return self._get_token_client(superuser=True)
 
-    def get_adminuser_client(self):
-        """Get a client for the adminuser."""
+    def get_staff_client(self):
+        """Get a client for a staff user."""
         return self._get_token_client(staff=True, superuser=False)
 
     def get_user_client(self, username=None, groupname="test_nobody_group"):

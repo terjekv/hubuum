@@ -7,6 +7,7 @@ from rest_framework import serializers
 from hubuum.models import (
     User,
     Host,
+    Namespace,
     #    ExternalSource,
     #    DetectedHostData,
     HostType,
@@ -59,6 +60,16 @@ class HostSerializer(serializers.ModelSerializer):
         model = Host
         fields = "__all__"
         # fields = ['id', 'name', '_mod_dns']
+
+
+class NamespaceSerializer(serializers.ModelSerializer):
+    """Serialize a Namespace object."""
+
+    class Meta:
+        """How to serialize the object."""
+
+        model = Namespace
+        fields = "__all__"
 
 
 #    def get_externals(self, obj):
