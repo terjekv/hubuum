@@ -2,7 +2,7 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 
 # from django.shortcuts import get
 from rest_framework import generics
