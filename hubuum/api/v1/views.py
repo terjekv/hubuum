@@ -2,7 +2,7 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.http import Http404
+from django.http import Http404, HttpResponseBadRequest
 
 # from django.shortcuts import get
 from rest_framework import generics
@@ -116,7 +116,7 @@ class MultipleFieldLookupORMixin(object):
                 # No, just no.
                 object = queryset.get(**{field: value})
             except Exception:
-                pass
+                raise HttpResponseBadRequest()
 
         if object is None:
             raise Http404()
