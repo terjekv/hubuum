@@ -24,7 +24,7 @@ class HubuumModelTestCase(TestCase):
     def setUp(self):
         """Set up defaults for the test object."""
         self.username = "test"
-        self.password = "test"
+        self.password = "test"  # nosec
         self.groupname = "test"
         self.namespacename = "test"
 

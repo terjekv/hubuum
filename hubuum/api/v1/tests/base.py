@@ -62,7 +62,7 @@ class HubuumAPITestCase(APITestCase):
             else:
                 username = "nobody"
 
-        self.user, created = get_user_model().objects.get_or_create(
+        self.user, created = get_user_model().objects.get_or_create(  # nosec
             username=username, password="test"
         )
         self.user.groups.clear()

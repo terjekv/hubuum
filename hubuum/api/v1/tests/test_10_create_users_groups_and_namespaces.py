@@ -1,4 +1,4 @@
-"""Test authentication."""
+"""Test users, groups, and namespaces."""
 
 from .base import HubuumAPITestCase
 
@@ -47,3 +47,19 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         """Test normal users ability to create groups."""
         self.client = self.get_user_client()
         self.assert_post_and_403("/groups/", {"name": "groupone"})
+
+
+class APINamespaceTestCase(HubuumAPITestCase):
+    """Test creation and manipulation of Namespaces."""
+
+    def test_staff_create_namespace(self):
+        """Test authenticated namespace creation."""
+        self.client = self.get_staff_client()
+        response = self.assert_post("/namespaces/", {"name": "namespaceone"})
+        data = response.json()
+        self.assertEqual(data["name"], "namespaceone")
+
+    def test_user_create_namespace(self):
+        """Test users ability to create namespaces."""
+        self.client = self.get_user_client()
+        self.assert_post_and_403("/namespaces/", {"name": "namespaceone"})

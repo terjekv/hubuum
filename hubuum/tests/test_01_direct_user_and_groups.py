@@ -15,7 +15,7 @@ class UserAndGroupTestCase(TestCase):
     def setUp(self) -> None:
         """Set up defaults for the test object."""
         self.username = "tester"
-        self.password = "testpassword"
+        self.password = "testpassword"  # nosec
 
         self.groupname = "testgroup"
 

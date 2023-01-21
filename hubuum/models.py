@@ -64,9 +64,25 @@ class User(AbstractUser):
                 namespace=obj.namespace, **{field: True}, group__in=self.groups.all()
             ).exists()
         else:
-            # We're asking for a list of objects, which we can do.
-            # We might not get any results... But that's a different issue.
-            return True
+            #            print(self)
+            if operation == "create":
+                if model == "namespace":
+                    if self.is_staff:
+                        return True
+                    else:
+                        # The namespace we want to create needs to be a subset of one we have
+                        # create_namespace on.
+                        # How do we know what we are trying to create?
+                        # Handled by a mixin permission class.
+                        return False
+                else:
+                    # How do we know the namespace we are in?
+                    # Handled by a mixin permission class.
+                    return False
+            else:
+                # We're asking for a list of objects, which we can do.
+                # We might not get any results... But that's a different issue.
+                return True
 
 
 class HubuumModel(models.Model):

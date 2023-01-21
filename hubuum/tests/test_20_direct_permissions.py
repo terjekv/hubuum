@@ -10,10 +10,12 @@ class PermissionsTestCase(TestCase):
 
     def setUp(self) -> None:
         """Set up example users and groups."""
-        self.one = User.objects.create(username="one", password="test")
-        self.two = User.objects.create(username="two", password="test")
-        self.staff = User.objects.create(username="staff", password="test")
-        self.superuser = User.objects.create(username="superuser", password="test")
+        self.one = User.objects.create(username="one", password="test")  # nosec
+        self.two = User.objects.create(username="two", password="test")  # nosec
+        self.staff = User.objects.create(username="staff", password="test")  # nosec
+        self.superuser = User.objects.create(  # nosec
+            username="superuser", password="test"
+        )
 
         self.superuser.is_superuser = True
         self.staff.is_staff = True

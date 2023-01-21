@@ -2,7 +2,7 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.http import Http404, HttpResponseBadRequest
+from django.http import Http404
 
 # from django.shortcuts import get
 from rest_framework import generics
@@ -116,8 +116,13 @@ class MultipleFieldLookupORMixin(object):
                 # https://stackoverflow.com/questions/9122169/calling-filter-with-a-variable-for-field-name
                 # No, just no.
                 object = queryset.get(**{field: value})
-            except Exception:
-                raise HttpResponseBadRequest()
+                if object:
+                    break
+
+            # If we didn't get a hit, or an error, keep trying.
+            # If we don't get a hit at all, we'll raise 404.
+            except Exception:  # nosec
+                pass
 
         if object is None:
             raise Http404()
