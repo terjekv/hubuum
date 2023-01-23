@@ -6,7 +6,7 @@ from django.http import Http404
 
 # from django.shortcuts import get
 from rest_framework import generics
-from rest_framework.permissions import IsAdminUser, IsAuthenticated
+from hubuum.permissions import IsSuperOrAdminOrReadOnly, NameSpaceOrReadOnly
 
 # from rest_framework.response import Response
 from url_filter.integrations.drf import DjangoFilterBackend
@@ -60,33 +60,6 @@ from .serializers import (
 )
 
 
-def _write_actions():
-    return ["POST", "DELETE", "PATCH"]
-
-
-def _write_actions_require_admin(self):
-    return _actions_requires_admin(self, _write_actions())
-
-
-def _actions_requires_admin(self, actions):
-    if self.request.method in actions:
-        permission_classes = [IsAdminUser]
-    else:
-        permission_classes = [IsAuthenticated]
-    return [permission() for permission in permission_classes]
-
-
-class WriteActionsRequireAdminMixin(object):
-    """A mixin that ensures that only admins can perform actions.
-
-    Everyone authenticated is given view/read access.
-    """
-
-    def get_permissions(self):
-        """Restrict destructive actions to admin."""
-        return _write_actions_require_admin(self)
-
-
 class MultipleFieldLookupORMixin(object):
     """A mixin to allow us to look up objects beyond just the primary key.
 
@@ -130,44 +103,40 @@ class MultipleFieldLookupORMixin(object):
         return object
 
 
-class UserList(WriteActionsRequireAdminMixin, generics.ListCreateAPIView):
+class UserList(generics.ListCreateAPIView):
     """Get: List users. Post: Add user."""
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class UserDetail(
-    WriteActionsRequireAdminMixin,
-    MultipleFieldLookupORMixin,
-    generics.RetrieveUpdateDestroyAPIView,
-):
+class UserDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     """Get, Patch, or Destroy a user."""
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_fields = ("id", "username", "email")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class GroupList(WriteActionsRequireAdminMixin, generics.ListCreateAPIView):
+class GroupList(generics.ListCreateAPIView):
     """Get: List groups. Post: Add group."""
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 # 5
 # TODO: Should we restrict patch and destroy of users and groups to admins? Probably.
-class GroupDetail(
-    WriteActionsRequireAdminMixin,
-    MultipleFieldLookupORMixin,
-    generics.RetrieveUpdateDestroyAPIView,
-):
+class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     """Get, Patch, or Destroy a group."""
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     lookup_fields = ("id", "name")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class HostList(generics.ListCreateAPIView):
@@ -178,6 +147,7 @@ class HostList(generics.ListCreateAPIView):
     #    filter_backends = [DjangoFilterBackend]
     permission_classes = (CustomObjectPermissions,)
     filter_backends = (DjangoObjectPermissionsFilter,)
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class Host(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
@@ -186,6 +156,7 @@ class Host(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     queryset = Host.objects.all()
     serializer_class = HostSerializer
     lookup_fields = ("id", "name", "fqdn")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class NamespaceList(generics.ListCreateAPIView):
@@ -194,7 +165,7 @@ class NamespaceList(generics.ListCreateAPIView):
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
     #    filter_backends = [DjangoFilterBackend]
-    permission_classes = (CustomObjectPermissions,)
+    permission_classes = (NameSpaceOrReadOnly,)
     filter_backends = (DjangoObjectPermissionsFilter,)
 
 
@@ -204,6 +175,7 @@ class Namespace(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIVie
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
     lookup_fields = ("id", "name")
+    permission_classes = (NameSpaceOrReadOnly,)
 
 
 # class ExternalSource(generics.RetrieveUpdateDestroyAPIView):

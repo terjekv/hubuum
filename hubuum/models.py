@@ -3,20 +3,24 @@
 import re
 
 from django.db import models
+
 from django.apps import apps
 
 from django.contrib.auth.models import AbstractUser
 
-# from hubuum.models import Permissions
-
+from hubuum.permissions import operation_exists
 from hubuum.exceptions import MissingParam
+
+
+def model_exists(model):
+    """Check if a given model exists by name."""
+    return apps.get_model("hubuum", model)
 
 
 class User(AbstractUser):
     """Extension to the default User class."""
 
     permissions_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
-    permission_operations = ("create", "read", "update", "delete", "namespace")
 
     _group_list = None
 
@@ -27,13 +31,32 @@ class User(AbstractUser):
             self._group_list = list(self.groups.values_list("name", flat=True))
         return self._group_list
 
+    def can_modify_namespaces(self, namespace):
+        """Check if the user has namespace permissions for the given namespace.
+
+        If the namespace isn't scoped (contains no dots), return False.
+        Only admin users can create root namespaces.
+        """
+        scope = namespace.split(".")
+
+        if len(scope) == 0:
+            return False
+
+        try:
+            parent = Namespace.objects.get(name=scope[-1])
+        except Exception:
+            return False
+
+        return Permissions.objects.filter(
+            namespace=parent.id, has_namespace=True, group__in=self.groups.all()
+        ).exists()
+
     def has_perm(self, perm: str, obj: object = None) -> bool:
         """
         Permissions check for an object.
 
         perm: see permissions.py
         obj: Hubuum Object
-
         """
         #        print("Self: <" + str(self) + ">")
         #        print("Perm: <" + str(perm) + ">")
@@ -47,42 +70,27 @@ class User(AbstractUser):
             raise MissingParam(
                 "Unknown permission '{}' passed to has_perm".format(perm)
             )
-        if (
-            (operation and model)
-            and (operation in User.permission_operations)
-            and (apps.get_model("hubuum", model))
-        ):
+
+        if not (operation and model):
+            raise MissingParam(
+                "Unknown expression '{}' passed to has_perm".format(perm)
+            )
+
+        if operation_exists(operation) and model_exists(model):
             field = "has_" + operation
-        #            model = m
         else:
             raise MissingParam(
-                "Unknown permission '{}' passed to has_perm".format(perm)
+                "Unknown operation or model '{} / {}' passed to has_perm".format(
+                    operation, model
+                )
             )
 
         if obj:
             return Permissions.objects.filter(
                 namespace=obj.namespace, **{field: True}, group__in=self.groups.all()
             ).exists()
-        else:
-            #            print(self)
-            if operation == "create":
-                if model == "namespace":
-                    if self.is_staff:
-                        return True
-                    else:
-                        # The namespace we want to create needs to be a subset of one we have
-                        # create_namespace on.
-                        # How do we know what we are trying to create?
-                        # Handled by a mixin permission class.
-                        return False
-                else:
-                    # How do we know the namespace we are in?
-                    # Handled by a mixin permission class.
-                    return False
-            else:
-                # We're asking for a list of objects, which we can do.
-                # We might not get any results... But that's a different issue.
-                return True
+
+        return False
 
 
 class HubuumModel(models.Model):

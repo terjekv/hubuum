@@ -58,8 +58,16 @@ class APINamespaceTestCase(HubuumAPITestCase):
         response = self.assert_post("/namespaces/", {"name": "namespaceone"})
         data = response.json()
         self.assertEqual(data["name"], "namespaceone")
+        self.assert_get_and_200("/namespace/namespaceone")
 
-    def test_user_create_namespace(self):
-        """Test users ability to create namespaces."""
+    def test_user_create_root_namespace(self):
+        """Test users ability to create root namespaces."""
         self.client = self.get_user_client()
         self.assert_post_and_403("/namespaces/", {"name": "namespaceone"})
+
+    def test_user_create_scoped_namespace(self):
+        """Test users ability to create root namespaces."""
+        self.client = self.get_user_client()
+        self.assert_post_and_403("/namespaces/", {"name": "namespaceone.mine"})
+
+        # Test giving the user access and create a scoped namespace
