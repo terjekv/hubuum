@@ -1,7 +1,7 @@
 """Filters for hubuum permissions."""
 from rest_framework import filters
 
-from hubuum.models import Permissions
+from hubuum.models import Permission
 
 
 class DjangoObjectPermissionsFilter(filters.BaseFilterBackend):
@@ -22,7 +22,7 @@ class DjangoObjectPermissionsFilter(filters.BaseFilterBackend):
         #    Find all namespaces we can perform the given operation in.
 
         #        print("List of {}".format(model))
-        res = Permissions.objects.filter(has_read=True, group__in=user.groups.all())
+        res = Permission.objects.filter(has_read=True, group__in=user.groups.all())
         if not res:
             return []
 

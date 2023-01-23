@@ -8,8 +8,6 @@ from hubuum.models import (
     User,
     Host,
     Namespace,
-    #    ExternalSource,
-    #    DetectedHostData,
     HostType,
     Room,
     Jack,
@@ -17,15 +15,12 @@ from hubuum.models import (
     Person,
     PurchaseOrder,
     PurchaseDocuments,
+    Permission,
 )
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Serialize a User object."""
-
-    #    def create(self, validated_data):
-    #        user = User.objects.create_user(**validated_data)
-    #        return user
 
     class Meta:
         """How to serialize the object."""
@@ -37,9 +32,6 @@ class UserSerializer(serializers.ModelSerializer):
 class GroupSerializer(serializers.ModelSerializer):
     """Serialize a Group object."""
 
-    #    def create(self, validated_data):
-    #        group = Group.objects.create_user(**validated_data)
-    #        return group
     class Meta:
         """How to serialize the object."""
 
@@ -72,20 +64,14 @@ class NamespaceSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-#    def get_externals(self, obj):
-#        associated_externals = DetectedHostData.get_externals_for_host(obj.id)
+class PermissionSerializer(serializers.ModelSerializer):
+    """Serialize a Permission object."""
 
+    class Meta:
+        """How to serialize the object."""
 
-# class ExternalSourceSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = ExternalSource
-#        fields = "__all__"
-
-
-# class DetectedHostDataSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = DetectedHostData
-#        fields = "__all__"
+        model = Permission
+        fields = "__all__"
 
 
 class HostTypeSerializer(serializers.ModelSerializer):

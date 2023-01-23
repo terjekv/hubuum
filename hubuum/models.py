@@ -47,7 +47,7 @@ class User(AbstractUser):
         except Exception:
             return False
 
-        return Permissions.objects.filter(
+        return Permission.objects.filter(
             namespace=parent.id, has_namespace=True, group__in=self.groups.all()
         ).exists()
 
@@ -86,7 +86,7 @@ class User(AbstractUser):
             )
 
         if obj:
-            return Permissions.objects.filter(
+            return Permission.objects.filter(
                 namespace=obj.namespace, **{field: True}, group__in=self.groups.all()
             ).exists()
 
@@ -128,7 +128,7 @@ class Namespace(HubuumModel):
     description = models.TextField(blank=True)
 
 
-class Permissions(HubuumModel):
+class Permission(HubuumModel):
     """
     Permissions in Hubuum.
 

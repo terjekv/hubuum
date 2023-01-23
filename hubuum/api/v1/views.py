@@ -4,36 +4,21 @@
 from django.contrib.auth.models import Group
 from django.http import Http404
 
-# from django.shortcuts import get
 from rest_framework import generics
-from hubuum.permissions import IsSuperOrAdminOrReadOnly, NameSpaceOrReadOnly
 
-# from rest_framework.response import Response
 from url_filter.integrations.drf import DjangoFilterBackend
 
-# from guardian.shortcuts import get_objects_for_user
-
 from hubuum.filters import DjangoObjectPermissionsFilter
-from hubuum.permissions import CustomObjectPermissions
-
-# Default
-# from rest_framework.permissions import IsAuthenticated
-
-# class UserViewSet(ModelViewSet):
-#    queryset = User.objects.all()
-#    serializer_class = UserSerializer
-#    filter_backends = [DjangoFilterBackend]
-#    filter_fields = ['username', 'email']
-
-# from url_filter.filtersets import ModelFilterSet
-# from rest_framework import viewsets
+from hubuum.permissions import (
+    CustomObjectPermissions,
+    IsSuperOrAdminOrReadOnly,
+    NameSpaceOrReadOnly,
+)
 
 from hubuum.models import (
     User,
     Host,
     Namespace,
-    #    ExternalSource,
-    #    DetectedHostData,
     HostType,
     Room,
     Jack,
@@ -41,13 +26,12 @@ from hubuum.models import (
     Person,
     PurchaseOrder,
     PurchaseDocuments,
+    Permission,
 )
 
 from .serializers import (
     HostSerializer,
     NamespaceSerializer,
-    #    ExternalSourceSerializer,
-    #    DetectedHostDataSerializer,
     HostTypeSerializer,
     RoomSerializer,
     JackSerializer,
@@ -57,6 +41,7 @@ from .serializers import (
     PurchaseDocumentsSerializer,
     UserSerializer,
     GroupSerializer,
+    PermissionSerializer,
 )
 
 
@@ -83,7 +68,7 @@ class MultipleFieldLookupORMixin(object):
         """Perform the actual lookup based on the lookup_fields."""
         queryset = self.get_queryset()
         object = None
-        value = self.kwargs["lookup_value"]
+        value = self.kwargs["key"]
         for field in self.lookup_fields:
             try:
                 # https://stackoverflow.com/questions/9122169/calling-filter-with-a-variable-for-field-name
@@ -128,14 +113,30 @@ class GroupList(generics.ListCreateAPIView):
     permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-# 5
-# TODO: Should we restrict patch and destroy of users and groups to admins? Probably.
 class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     """Get, Patch, or Destroy a group."""
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     lookup_fields = ("id", "name")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+
+
+class Permission(generics.ListCreateAPIView):
+    """Get: List permissions. Post: Add permission."""
+
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+
+
+class PermissionDetail(
+    MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView
+):
+    """Get, Patch, or Destroy a permission."""
+
+    queryset = Permission.objects.all()
+    serializer_class = PermissionSerializer
     permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
