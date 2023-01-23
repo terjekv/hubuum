@@ -32,10 +32,9 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         response = self.assert_get("/users/")
         self.assertEqual(len(response.data), 3)
 
-    def test_get_user_by_username(self):
-        """Test getting of users by username."""
+    def test_get_user_by_username_or_email(self):
+        """Test getting of users by username or email."""
         self.client = self.get_staff_client()
-        # We currently have two users created during setUp()
         self.assert_post(
             "/users/",
             {"username": "userone", "password": "test", "email": "test@test.nowhere"},
