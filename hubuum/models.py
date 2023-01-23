@@ -17,12 +17,26 @@ def model_exists(model):
     return apps.get_model("hubuum", model)
 
 
+def model_is_open(model):
+    """True if the model is an open model."""
+    return model in models_that_are_open()
+
+
+def models_that_are_open():
+    """Returns a list of models open to all authenticated users."""
+    return ("user", "group")
+
+
 class User(AbstractUser):
     """Extension to the default User class."""
 
     permissions_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
 
     _group_list = None
+
+    def is_admin(self):
+        """True is the user is any type of admin (staff/superadmin) (or in a similar group?)"""
+        return self.is_staff or self.is_superuser
 
     @property
     def group_list(self):

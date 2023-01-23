@@ -6,11 +6,8 @@ from django.http import Http404
 
 from rest_framework import generics
 
-from url_filter.integrations.drf import DjangoFilterBackend
-
-from hubuum.filters import DjangoObjectPermissionsFilter
+from hubuum.filters import HubuumObjectPermissionsFilter
 from hubuum.permissions import (
-    CustomObjectPermissions,
     IsSuperOrAdminOrReadOnly,
     NameSpaceOrReadOnly,
 )
@@ -68,7 +65,7 @@ class MultipleFieldLookupORMixin(object):
         """Perform the actual lookup based on the lookup_fields."""
         queryset = self.get_queryset()
         object = None
-        value = self.kwargs["key"]
+        value = self.kwargs["val"]
         for field in self.lookup_fields:
             try:
                 # https://stackoverflow.com/questions/9122169/calling-filter-with-a-variable-for-field-name
@@ -88,89 +85,86 @@ class MultipleFieldLookupORMixin(object):
         return object
 
 
-class UserList(generics.ListCreateAPIView):
+class HubuumList(generics.ListCreateAPIView):
+    """Get: List objects. Post: Add object."""
+
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    filter_backends = [HubuumObjectPermissionsFilter]
+
+
+# NOTE: Order for the inheritance here is vital.
+class HubuumDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+    """Get, Patch, or Destroy an object."""
+
+
+class UserList(HubuumList):
     """Get: List users. Post: Add user."""
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class UserDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+class UserDetail(HubuumDetail):
     """Get, Patch, or Destroy a user."""
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_fields = ("id", "username", "email")
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class GroupList(generics.ListCreateAPIView):
+class GroupList(HubuumList):
     """Get: List groups. Post: Add group."""
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class GroupDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+class GroupDetail(HubuumDetail):
     """Get, Patch, or Destroy a group."""
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     lookup_fields = ("id", "name")
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class Permission(generics.ListCreateAPIView):
+class PermissionList(HubuumList):
     """Get: List permissions. Post: Add permission."""
 
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class PermissionDetail(
-    MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView
-):
+class PermissionDetail(HubuumDetail):
     """Get, Patch, or Destroy a permission."""
 
     queryset = Permission.objects.all()
     serializer_class = PermissionSerializer
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class HostList(generics.ListCreateAPIView):
+class HostList(HubuumList):
     """Get: List hosts. Post: Add host."""
 
     queryset = Host.objects.all().order_by("id")
     serializer_class = HostSerializer
-    #    filter_backends = [DjangoFilterBackend]
-    permission_classes = (CustomObjectPermissions,)
-    filter_backends = (DjangoObjectPermissionsFilter,)
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class Host(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+class HostDetail(HubuumDetail):
     """Get, Patch, or Destroy a host."""
 
     queryset = Host.objects.all()
     serializer_class = HostSerializer
     lookup_fields = ("id", "name", "fqdn")
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
-class NamespaceList(generics.ListCreateAPIView):
+class NamespaceList(HubuumList):
     """Get: List Namespaces. Post: Add Namespace."""
 
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
-    #    filter_backends = [DjangoFilterBackend]
     permission_classes = (NameSpaceOrReadOnly,)
-    filter_backends = (DjangoObjectPermissionsFilter,)
 
 
-class Namespace(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
+class NamespaceDetail(HubuumDetail):
     """Get, Patch, or Destroy a host."""
 
     queryset = Namespace.objects.all()
@@ -179,124 +173,98 @@ class Namespace(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIVie
     permission_classes = (NameSpaceOrReadOnly,)
 
 
-# class ExternalSource(generics.RetrieveUpdateDestroyAPIView):
-#     queryset = ExternalSource.objects.all()
-#     serializer_class = ExternalSourceSerializer
-
-
-# class ExternalSourceList(generics.ListCreateAPIView):
-#     #    queryset = ExternalSource.objects.all()
-#     serializer_class = ExternalSourceSerializer
-#     filter_backends = [DjangoFilterBackend]
-
-
-# class DetectedHost(generics.RetrieveUpdateDestroyAPIView):
-#     queryset = DetectedHostData.objects.all()
-#     serializer_class = DetectedHostDataSerializer
-
-
-class HostTypeList(generics.ListCreateAPIView):
+class HostTypeList(HubuumList):
     """Get: List hosttypes. Post: Add hosttype."""
 
     queryset = HostType.objects.all().order_by("name")
     serializer_class = HostTypeSerializer
-    filter_backends = [DjangoFilterBackend]
-    lookup_field = "name"
 
 
-class HostType(generics.RetrieveUpdateDestroyAPIView):
+class HostTypeDetail(HubuumDetail):
     """Get, Patch, or Destroy a hosttype."""
 
     queryset = HostType.objects.all()
     serializer_class = HostTypeSerializer
 
 
-class RoomList(generics.ListCreateAPIView):
+class RoomList(HubuumList):
     """Get: List rooms. Post: Add room."""
 
     queryset = Room.objects.all().order_by("id")
     serializer_class = RoomSerializer
-    filter_backends = [DjangoFilterBackend]
 
 
-class Room(generics.RetrieveUpdateDestroyAPIView):
+class RoomDetail(HubuumDetail):
     """Get, Patch, or Destroy a room."""
 
     queryset = Room.objects.all()
     serializer_class = RoomSerializer
 
 
-class JackList(generics.ListCreateAPIView):
+class JackList(HubuumList):
     """Get: List jacks. Post: Add jack."""
 
     queryset = Jack.objects.all().order_by("name")
     serializer_class = JackSerializer
-    filter_backends = [DjangoFilterBackend]
-    lookup_field = "name"
 
 
-class Jack(generics.RetrieveUpdateDestroyAPIView):
+class JackDetail(HubuumDetail):
     """Get, Patch, or Destroy a jack."""
 
     queryset = Jack.objects.all()
     serializer_class = JackSerializer
 
 
-class PersonList(generics.ListCreateAPIView):
+class PersonList(HubuumList):
     """Get: List persons. Post: Add person."""
 
     queryset = Person.objects.all().order_by("id")
     serializer_class = PersonSerializer
-    filter_backends = [DjangoFilterBackend]
 
 
-class Person(generics.RetrieveUpdateDestroyAPIView):
+class PersonDetail(HubuumDetail):
     """Get, Patch, or Destroy a person."""
 
     queryset = Person.objects.all()
     serializer_class = PersonSerializer
 
 
-class VendorList(generics.ListCreateAPIView):
+class VendorList(HubuumList):
     """Get: List vendors. Post: Add vendor."""
 
     queryset = Vendor.objects.all().order_by("vendor_name")
     serializer_class = VendorSerializer
-    filter_backends = [DjangoFilterBackend]
-    lookup_field = "vendor_name"
 
 
-class Vendor(generics.RetrieveUpdateDestroyAPIView):
+class VendorDetail(HubuumDetail):
     """Get, Patch, or Destroy a vendor."""
 
     queryset = Vendor.objects.all()
     serializer_class = VendorSerializer
 
 
-class PurchaseOrderList(generics.ListCreateAPIView):
+class PurchaseOrderList(HubuumList):
     """Get: List purchaseorders. Post: Add purchaseorder."""
 
     queryset = PurchaseOrder.objects.all().order_by("id")
     serializer_class = PurchaseOrderSerializer
-    filter_backends = [DjangoFilterBackend]
 
 
-class PurchaseOrder(generics.RetrieveUpdateDestroyAPIView):
+class PurchaseOrderDetail(HubuumDetail):
     """Get, Patch, or Destroy a purchaseorder."""
 
     queryset = PurchaseOrder.objects.all()
     serializer_class = PurchaseOrderSerializer
 
 
-class PurchaseDocumentList(generics.ListCreateAPIView):
+class PurchaseDocumentList(HubuumList):
     """Get: List purchasedocuments. Post: Add purchasedocument."""
 
     queryset = PurchaseDocuments.objects.all().order_by("id")
     serializer_class = PurchaseDocumentsSerializer
-    filter_backends = [DjangoFilterBackend]
 
 
-class PurchaseDocument(generics.RetrieveUpdateDestroyAPIView):
+class PurchaseDocumentDetail(HubuumDetail):
     """Get, Patch, or Destroy a purchasedocument."""
 
     queryset = PurchaseDocuments.objects.all()

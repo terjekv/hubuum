@@ -27,6 +27,11 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         response = self.assert_get("/users/")
         self.assertEqual(len(response.data), 2)
 
+        # Repeat the same for a normal user. This implicitly creates another user.
+        self.client = self.get_user_client()
+        response = self.assert_get("/users/")
+        self.assertEqual(len(response.data), 3)
+
     # TODO: #30 Also test by email.
     def test_get_user_by_username(self):
         """Test getting of users by username."""
@@ -42,6 +47,13 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         response = self.assert_post("/groups/", {"name": "groupone"})
         data = response.json()
         self.assertEqual(data["name"], "groupone")
+        response = self.assert_get("/groups/")
+        self.assertEqual(len(response.data), 1)
+
+        # Repeat the same for a normal user. This implicitly creates another group...
+        self.client = self.get_user_client()
+        response = self.assert_get("/groups/")
+        self.assertEqual(len(response.data), 2)
 
     def test_user_create_group(self):
         """Test normal users ability to create groups."""
