@@ -188,8 +188,12 @@ class HubuumAPITestCase(APITestCase):
         return self._assert_get_and_status(path, 404, **kwargs)
 
     def assert_patch(self, path, *args, **kwargs):
-        """Patch and assert status as 204."""
-        return self.assert_patch_and_204(path, *args, **kwargs)
+        """Patch and assert status as 200."""
+        return self.assert_patch_and_200(path, *args, **kwargs)
+
+    def assert_patch_and_200(self, path, *args, **kwargs):
+        """Patch and assert status as 200."""
+        return self._assert_patch_and_status(path, 200, *args, **kwargs)
 
     def assert_patch_and_204(self, path, *args, **kwargs):
         """Patch and assert status as 204."""

@@ -96,6 +96,8 @@ class HubuumList(generics.ListCreateAPIView):
 class HubuumDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     """Get, Patch, or Destroy an object."""
 
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+
 
 class UserList(HubuumList):
     """Get: List users. Post: Add user."""

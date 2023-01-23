@@ -2,10 +2,8 @@
 # from datetime import datetime
 import re
 
-from django.db import models
-
 from django.apps import apps
-
+from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 from hubuum.permissions import operation_exists
@@ -18,12 +16,12 @@ def model_exists(model):
 
 
 def model_is_open(model):
-    """True if the model is an open model."""
+    """Check if the model is an open model."""
     return model in models_that_are_open()
 
 
 def models_that_are_open():
-    """Returns a list of models open to all authenticated users."""
+    """Return a list of models open to all authenticated users."""
     return ("user", "group")
 
 
@@ -35,7 +33,7 @@ class User(AbstractUser):
     _group_list = None
 
     def is_admin(self):
-        """True is the user is any type of admin (staff/superadmin) (or in a similar group?)"""
+        """Check if the user is any type of admin (staff/superadmin) (or in a similar group?)."""
         return self.is_staff or self.is_superuser
 
     @property

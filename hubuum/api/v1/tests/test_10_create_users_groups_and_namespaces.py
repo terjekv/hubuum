@@ -45,24 +45,64 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         self.assertEqual(response.data["username"], "userone")
         self.assert_get_and_404("/user/nosuchusername")
 
-    def test_staff_create_group(self):
+    def test_create_and_delete_group(self):
         """Test authenticated group creation."""
         self.client = self.get_staff_client()
         response = self.assert_post("/groups/", {"name": "groupone"})
-        data = response.json()
-        self.assertEqual(data["name"], "groupone")
+        self.assertEqual(response.data["name"], "groupone")
         response = self.assert_get("/groups/")
         self.assertEqual(len(response.data), 1)
+
+        self.assert_delete("/group/" + str(response.data[0]["id"]))
+        response = self.assert_get("/groups/")
+        self.assertEqual(len(response.data), 0)
 
         # Repeat the same for a normal user. This implicitly creates another group...
         self.client = self.get_user_client()
         response = self.assert_get("/groups/")
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data), 1)
+
+        self.assert_delete_and_403("/group/" + str(response.data[0]["id"]))
+        response = self.assert_get("/groups/")
+        self.assertEqual(len(response.data), 1)
+
+    def test_staff_add_user_to_group(self):
+        """Test add user to group."""
+        self.client = self.get_staff_client()
+        self.assert_post(
+            "/users/",
+            {"username": "userone", "password": "test", "email": "test@test.nowhere"},
+        )
+        userresponse = self.assert_get("/user/userone")
+        self.assertEqual(userresponse.data["username"], "userone")
+        self.assertEqual(len(userresponse.data["groups"]), 0)
+        groupresponse = self.assert_post("/groups/", {"name": "groupone"})
+        self.assertEqual(groupresponse.data["name"], "groupone")
+
+        self.assert_patch("/user/userone", {"groups": [groupresponse.data["id"]]})
+        userresponse = self.assert_get("/user/userone")
+        self.assertEqual(userresponse.data["username"], "userone")
+        self.assertEqual(len(userresponse.data["groups"]), 1)
 
     def test_user_create_group(self):
         """Test normal users ability to create groups."""
         self.client = self.get_user_client()
         self.assert_post_and_403("/groups/", {"name": "groupone"})
+
+    def test_patch_group(self):
+        """Test normal users ability to patch groups."""
+        self.client = self.get_staff_client()
+        self.assert_post("/groups/", {"name": "groupone"})
+        self.assert_patch_and_400("/group/groupone", {"wrongkey": "nope"})
+
+        self.client = self.get_user_client()
+        self.assert_get("/group/groupone")
+        self.assert_patch_and_403("/group/groupone", {"name": "nope"})
+
+    def test_user_delete_group(self):
+        """Test normal users ability to delete groups."""
+        self.client = self.get_user_client()
+        self.assert_delete_and_403("/group/0")
 
 
 class APINamespaceTestCase(HubuumAPITestCase):
