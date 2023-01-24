@@ -1,8 +1,7 @@
 """Test module for the Jack model."""
+from hubuum.models import Jack
 
 from .base import HubuumModelTestCase
-
-from hubuum.models import Jack
 
 
 class JackTestCase(HubuumModelTestCase):

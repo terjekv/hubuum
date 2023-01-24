@@ -1,8 +1,7 @@
 """Test module for the Host model."""
+from hubuum.models import Host
 
 from .base import HubuumModelTestCase
-
-from hubuum.models import Host
 
 
 class HostTestCase(HubuumModelTestCase):

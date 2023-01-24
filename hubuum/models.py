@@ -3,11 +3,11 @@
 import re
 
 from django.apps import apps
-from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.db import models
 
-from hubuum.permissions import operation_exists
 from hubuum.exceptions import MissingParam
+from hubuum.permissions import operation_exists
 
 
 def model_exists(model):

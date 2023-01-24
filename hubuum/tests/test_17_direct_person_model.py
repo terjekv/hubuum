@@ -1,8 +1,7 @@
 """Test module for the Person model."""
+from hubuum.models import Person
 
 from .base import HubuumModelTestCase
-
-from hubuum.models import Person
 
 
 class PersonTestCase(HubuumModelTestCase):

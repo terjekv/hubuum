@@ -1,8 +1,8 @@
 """Test module: Permissions."""
-from django.test import TestCase
 from django.contrib.auth.models import Group
+from django.test import TestCase
 
-from hubuum.models import User, Host, Namespace, Permission
+from hubuum.models import Host, Namespace, Permission, User
 
 
 class PermissionsTestCase(TestCase):

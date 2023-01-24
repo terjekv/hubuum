@@ -1,23 +1,21 @@
 """Versioned (v1) serializers of the hubuum models."""
-from rest_framework.fields import empty
-from rest_framework.exceptions import ValidationError
 from django.contrib.auth.models import Group
 from rest_framework import serializers
-
-# from hubuum.models_auth import User
+from rest_framework.exceptions import ValidationError
+from rest_framework.fields import empty
 
 from hubuum.models import (
-    User,
     Host,
-    Namespace,
     HostType,
-    Room,
     Jack,
-    Vendor,
-    Person,
-    PurchaseOrder,
-    PurchaseDocuments,
+    Namespace,
     Permission,
+    Person,
+    PurchaseDocuments,
+    PurchaseOrder,
+    Room,
+    User,
+    Vendor,
 )
 
 

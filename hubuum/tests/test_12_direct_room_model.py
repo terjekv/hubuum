@@ -1,8 +1,7 @@
 """Test module for the Room model."""
+from hubuum.models import Room
 
 from .base import HubuumModelTestCase
-
-from hubuum.models import Room
 
 
 class RoomTestCase(HubuumModelTestCase):

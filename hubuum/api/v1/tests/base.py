@@ -2,13 +2,11 @@
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-
+from knox.models import AuthToken
 from rest_framework.test import APIClient, APITestCase
 
-from knox.models import AuthToken
-
-from hubuum.models import Namespace
 from hubuum.exceptions import MissingParam
+from hubuum.models import Namespace
 
 
 # This testsuite design is based on the testsuite for MREG:

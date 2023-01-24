@@ -1,8 +1,7 @@
 """Test module for the Vendor model."""
+from hubuum.models import Vendor
 
 from .base import HubuumModelTestCase
-
-from hubuum.models import Vendor
 
 
 class VendorTestCase(HubuumModelTestCase):

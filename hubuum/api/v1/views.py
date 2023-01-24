@@ -3,42 +3,37 @@
 
 from django.contrib.auth.models import Group
 from django.http import Http404
-
 from rest_framework import generics
 
 from hubuum.filters import HubuumObjectPermissionsFilter
-from hubuum.permissions import (
-    IsSuperOrAdminOrReadOnly,
-    NameSpaceOrReadOnly,
-)
-
 from hubuum.models import (
-    User,
     Host,
-    Namespace,
     HostType,
-    Room,
     Jack,
-    Vendor,
-    Person,
-    PurchaseOrder,
-    PurchaseDocuments,
+    Namespace,
     Permission,
+    Person,
+    PurchaseDocuments,
+    PurchaseOrder,
+    Room,
+    User,
+    Vendor,
 )
+from hubuum.permissions import IsSuperOrAdminOrReadOnly, NameSpaceOrReadOnly
 
 from .serializers import (
-    HostSerializer,
-    NamespaceSerializer,
-    HostTypeSerializer,
-    RoomSerializer,
-    JackSerializer,
-    VendorSerializer,
-    PersonSerializer,
-    PurchaseOrderSerializer,
-    PurchaseDocumentsSerializer,
-    UserSerializer,
     GroupSerializer,
+    HostSerializer,
+    HostTypeSerializer,
+    JackSerializer,
+    NamespaceSerializer,
     PermissionSerializer,
+    PersonSerializer,
+    PurchaseDocumentsSerializer,
+    PurchaseOrderSerializer,
+    RoomSerializer,
+    UserSerializer,
+    VendorSerializer,
 )
 
 
