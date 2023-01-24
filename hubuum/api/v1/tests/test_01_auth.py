@@ -13,6 +13,11 @@ from .base import HubuumAPITestCase
 class APITokenAuthenticationTestCase(HubuumAPITestCase):
     """Test various token authentication operations."""
 
+    def test_user_access_without_authentication(self):
+        """Test unauthenticated user access."""
+        self.client = APIClient()
+        self.assert_get_and_401("/users/")
+
     def test_logout(self):
         """Test authenticated logout."""
         self.assert_get("/hosts/")

@@ -1,4 +1,6 @@
 """Versioned (v1) serializers of the hubuum models."""
+from rest_framework.fields import empty
+from rest_framework.exceptions import ValidationError
 from django.contrib.auth.models import Group
 from rest_framework import serializers
 
@@ -7,8 +9,7 @@ from rest_framework import serializers
 from hubuum.models import (
     User,
     Host,
-    #    ExternalSource,
-    #    DetectedHostData,
+    Namespace,
     HostType,
     Room,
     Jack,
@@ -16,15 +17,56 @@ from hubuum.models import (
     Person,
     PurchaseOrder,
     PurchaseDocuments,
+    Permission,
 )
 
 
-class UserSerializer(serializers.ModelSerializer):
-    """Serialize a User object."""
+class ErrorOnBadFieldMixin:
+    """Raise validation errors on bad input.
 
-    #    def create(self, validated_data):
-    #        user = User.objects.create_user(**validated_data)
-    #        return user
+    Django Rest Framework returns 200 OK for patches against both
+    read-only fields and non-existent fields... Ie, a quiet failure.
+    This mixin changes that behaviour to raise a Validation error which
+    again causes the response "400 Bad Request".
+    See https://github.com/encode/django-rest-framework/issues/6508
+    """
+
+    def run_validation(self, data=empty):
+        """Run the validation of the input."""
+        provided_keys = data.keys()
+        for fieldname, field in self.fields.items():
+            if field.read_only and fieldname in provided_keys:
+                raise ValidationError(
+                    code="write_on_read_only_field",
+                    detail={
+                        fieldname: (
+                            "You're trying to write to the field "
+                            "'{}' which is a read-only field.".format(fieldname)
+                        )
+                    },
+                )
+
+        extra_keys = set(provided_keys) - set(self.fields.keys())
+        if extra_keys:
+            raise ValidationError(
+                code="write_on_non_existent_field",
+                detail={
+                    fieldname: (
+                        "You're trying to write to the field "
+                        "'{}' which does not exist.".format(fieldname)
+                    )
+                },
+            )
+
+        return super().run_validation(data)
+
+
+class HubuumSerializer(ErrorOnBadFieldMixin, serializers.ModelSerializer):
+    """General Hubuum Serializer."""
+
+
+class UserSerializer(HubuumSerializer):
+    """Serialize a User object."""
 
     class Meta:
         """How to serialize the object."""
@@ -33,12 +75,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class GroupSerializer(serializers.ModelSerializer):
+class GroupSerializer(HubuumSerializer):
     """Serialize a Group object."""
 
-    #    def create(self, validated_data):
-    #        group = Group.objects.create_user(**validated_data)
-    #        return group
     class Meta:
         """How to serialize the object."""
 
@@ -46,7 +85,7 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class HostSerializer(serializers.ModelSerializer):
+class HostSerializer(HubuumSerializer):
     """Serialize a Host object."""
 
     # serializers.HyperlinkedModelSerializer
@@ -61,23 +100,27 @@ class HostSerializer(serializers.ModelSerializer):
         # fields = ['id', 'name', '_mod_dns']
 
 
-#    def get_externals(self, obj):
-#        associated_externals = DetectedHostData.get_externals_for_host(obj.id)
+class NamespaceSerializer(HubuumSerializer):
+    """Serialize a Namespace object."""
+
+    class Meta:
+        """How to serialize the object."""
+
+        model = Namespace
+        fields = "__all__"
 
 
-# class ExternalSourceSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = ExternalSource
-#        fields = "__all__"
+class PermissionSerializer(HubuumSerializer):
+    """Serialize a Permission object."""
+
+    class Meta:
+        """How to serialize the object."""
+
+        model = Permission
+        fields = "__all__"
 
 
-# class DetectedHostDataSerializer(serializers.ModelSerializer):
-#    class Meta:
-#        model = DetectedHostData
-#        fields = "__all__"
-
-
-class HostTypeSerializer(serializers.ModelSerializer):
+class HostTypeSerializer(HubuumSerializer):
     """Serialize a HostType object."""
 
     class Meta:
@@ -87,7 +130,7 @@ class HostTypeSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class JackSerializer(serializers.ModelSerializer):
+class JackSerializer(HubuumSerializer):
     """Serialize a Jack object."""
 
     class Meta:
@@ -97,7 +140,7 @@ class JackSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class PersonSerializer(serializers.ModelSerializer):
+class PersonSerializer(HubuumSerializer):
     """Serialize a Person object."""
 
     class Meta:
@@ -107,7 +150,7 @@ class PersonSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class RoomSerializer(serializers.ModelSerializer):
+class RoomSerializer(HubuumSerializer):
     """Serialize a Room object."""
 
     class Meta:
@@ -117,7 +160,7 @@ class RoomSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class PurchaseDocumentsSerializer(serializers.ModelSerializer):
+class PurchaseDocumentsSerializer(HubuumSerializer):
     """Serialize a PurchaseDocument object."""
 
     class Meta:
@@ -127,7 +170,7 @@ class PurchaseDocumentsSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class PurchaseOrderSerializer(serializers.ModelSerializer):
+class PurchaseOrderSerializer(HubuumSerializer):
     """Serialize a PurchaseOrder object."""
 
     class Meta:
@@ -137,7 +180,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-class VendorSerializer(serializers.ModelSerializer):
+class VendorSerializer(HubuumSerializer):
     """Serialize a Vendor object."""
 
     class Meta:

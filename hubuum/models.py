@@ -2,19 +2,39 @@
 # from datetime import datetime
 import re
 
+from django.apps import apps
 from django.db import models
-
 from django.contrib.auth.models import AbstractUser
 
-# from hubuum.models import Permissions
-
+from hubuum.permissions import operation_exists
 from hubuum.exceptions import MissingParam
+
+
+def model_exists(model):
+    """Check if a given model exists by name."""
+    return apps.get_model("hubuum", model)
+
+
+def model_is_open(model):
+    """Check if the model is an open model."""
+    return model in models_that_are_open()
+
+
+def models_that_are_open():
+    """Return a list of models open to all authenticated users."""
+    return ("user", "group")
 
 
 class User(AbstractUser):
     """Extension to the default User class."""
 
+    permissions_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
+
     _group_list = None
+
+    def is_admin(self):
+        """Check if the user is any type of admin (staff/superadmin) (or in a similar group?)."""
+        return self.is_staff or self.is_superuser
 
     @property
     def group_list(self):
@@ -23,66 +43,66 @@ class User(AbstractUser):
             self._group_list = list(self.groups.values_list("name", flat=True))
         return self._group_list
 
-    def has_perm(self, perm: str, obj: object) -> bool:
+    def can_modify_namespaces(self, namespace):
+        """Check if the user has namespace permissions for the given namespace.
+
+        If the namespace isn't scoped (contains no dots), return False.
+        Only admin users can create root namespaces.
+        """
+        scope = namespace.split(".")
+
+        if len(scope) == 0:
+            return False
+
+        try:
+            parent = Namespace.objects.get(name=scope[-1])
+        except Exception:
+            return False
+
+        return Permission.objects.filter(
+            namespace=parent.id, has_namespace=True, group__in=self.groups.all()
+        ).exists()
+
+    def has_perm(self, perm: str, obj: object = None) -> bool:
         """
         Permissions check for an object.
 
         perm: see permissions.py
         obj: Hubuum Object
-
         """
         #        print("Self: <" + str(self) + ">")
         #        print("Perm: <" + str(perm) + ">")
         #        print("Obj: <" + str(obj) + "> (" + str(obj.__class__) + ")")
 
         field = None
-        #        model = None
 
-        # We should test that operation and model have sane values.
-        p = re.compile(r"^hubuum.(\w+)_(\w+)$")
-        operation, model = re.match(p, perm).groups()
-        if operation and model:
-            field = "has_" + operation
-        #            model = m
-        else:
+        try:
+            operation, model = re.match(User.permissions_pattern, perm).groups()
+        except AttributeError:
             raise MissingParam(
                 "Unknown permission '{}' passed to has_perm".format(perm)
             )
 
-        #        print("loop")
-        #        for group in self.groups.all():
-        #            print(group)
-        #            print(
-        #                Permissions.objects.filter(
-        #                    namespace=obj.namespace, group=group, **{field: True}
-        #                ).exists()
-        #            )
+        if not (operation and model):
+            raise MissingParam(
+                "Unknown expression '{}' passed to has_perm".format(perm)
+            )
 
-        #        print("glob")
+        if operation_exists(operation) and model_exists(model):
+            field = "has_" + operation
+        else:
+            raise MissingParam(
+                "Unknown operation or model '{} / {}' passed to has_perm".format(
+                    operation, model
+                )
+            )
 
         if obj:
-            return Permissions.objects.filter(
+            return Permission.objects.filter(
                 namespace=obj.namespace, **{field: True}, group__in=self.groups.all()
             ).exists()
-        else:
-            # We're asking for a list of objects, which we can do.
-            # We might not get any results... But that's a different issue.
-            return True
 
-            # Find all namespaces we can perform the given operation in.
-
-
-#            print("List of {}".format(model))
-#            print(field)
-#            res = Permissions.objects.filter(
-#                **{field: True}, group__in=self.groups.all()
-#            )
-#            if not res:
-#                return
-#
-#            return apps.get_model("hubuum", model).objects.filter(
-#                namespace__in=res.namespace
-#            )
+        return False
 
 
 class HubuumModel(models.Model):
@@ -120,7 +140,7 @@ class Namespace(HubuumModel):
     description = models.TextField(blank=True)
 
 
-class Permissions(HubuumModel):
+class Permission(HubuumModel):
     """
     Permissions in Hubuum.
 

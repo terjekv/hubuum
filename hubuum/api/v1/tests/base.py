@@ -21,11 +21,11 @@ class HubuumAPITestCase(APITestCase):
         self.client = self.get_superuser_client()
 
     def get_superuser_client(self):
-        """Get a client for the superuser."""
+        """Get a client for a superuser."""
         return self._get_token_client(superuser=True)
 
-    def get_adminuser_client(self):
-        """Get a client for the adminuser."""
+    def get_staff_client(self):
+        """Get a client for a staff user."""
         return self._get_token_client(staff=True, superuser=False)
 
     def get_user_client(self, username=None, groupname="test_nobody_group"):
@@ -62,7 +62,7 @@ class HubuumAPITestCase(APITestCase):
             else:
                 username = "nobody"
 
-        self.user, created = get_user_model().objects.get_or_create(
+        self.user, created = get_user_model().objects.get_or_create(  # nosec
             username=username, password="test"
         )
         self.user.groups.clear()
@@ -188,8 +188,12 @@ class HubuumAPITestCase(APITestCase):
         return self._assert_get_and_status(path, 404, **kwargs)
 
     def assert_patch(self, path, *args, **kwargs):
-        """Patch and assert status as 204."""
-        return self.assert_patch_and_204(path, *args, **kwargs)
+        """Patch and assert status as 200."""
+        return self.assert_patch_and_200(path, *args, **kwargs)
+
+    def assert_patch_and_200(self, path, *args, **kwargs):
+        """Patch and assert status as 200."""
+        return self._assert_patch_and_status(path, 200, *args, **kwargs)
 
     def assert_patch_and_204(self, path, *args, **kwargs):
         """Patch and assert status as 204."""

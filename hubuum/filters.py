@@ -1,10 +1,10 @@
 """Filters for hubuum permissions."""
 from rest_framework import filters
 
-from hubuum.models import Permissions
+from hubuum.models import Permission, model_is_open
 
 
-class DjangoObjectPermissionsFilter(filters.BaseFilterBackend):
+class HubuumObjectPermissionsFilter(filters.BaseFilterBackend):
     """Return viewable objects for a user.
 
     This filter returns (request.)user-visible objects of a model in question.
@@ -22,11 +22,13 @@ class DjangoObjectPermissionsFilter(filters.BaseFilterBackend):
         #    Find all namespaces we can perform the given operation in.
 
         #        print("List of {}".format(model))
-        res = Permissions.objects.filter(has_read=True, group__in=user.groups.all())
-        if not res:
-            return []
-
-        return queryset.filter(namespace__in=res.namespace)
+        if user.is_admin() or model_is_open(queryset.model._meta.model_name):
+            return queryset
+        else:
+            res = Permission.objects.filter(has_read=True, group__in=user.groups.all())
+            if not res:
+                return []
+            return queryset.filter(namespace__in=res.namespace)
 
 
 #        return get_objects_for_user(user, permission, queryset, **self.shortcut_kwargs)

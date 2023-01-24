@@ -1,6 +1,10 @@
 """Test module: Users and Groups."""
+import pytest
+
 from django.test import TestCase
 from django.contrib.auth.models import Group
+
+from hubuum.exceptions import MissingParam
 
 from hubuum.models import User
 
@@ -11,9 +15,29 @@ class UserAndGroupTestCase(TestCase):
     def setUp(self) -> None:
         """Set up defaults for the test object."""
         self.username = "tester"
-        self.password = "testpassword"
+        self.password = "testpassword"  # nosec
 
         self.groupname = "testgroup"
+
+    def test_user_has_perm(self):
+        """Test has_perm for input management."""
+        self.user = User.objects.create(username=self.username, password=self.password)
+        self.assertIsNotNone(self.user)
+
+        with pytest.raises(MissingParam):
+            self.user.has_perm("nope")
+        with pytest.raises(MissingParam):
+            self.user.has_perm("hubuum.view_nosuchmodel")
+        with pytest.raises(MissingParam):
+            self.user.has_perm("hubuum.nosuchperm_host")
+
+    def test_user_has_groups(self):
+        """Test group list from the user."""
+        self.user = User.objects.create(username=self.username, password=self.password)
+        self.assertIsNotNone(self.user)
+        self.group = Group.objects.create(name=self.groupname)
+        self.user.groups.set([self.group])
+        self.assertEqual(self.user.group_list[0], self.groupname)
 
     def test_can_create_user(self):
         """Try to create a user."""
