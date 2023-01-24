@@ -1,10 +1,9 @@
 """Core URLs for the hubuum project, site configuration."""
 
 from django.contrib import admin
-from django.urls import path, include
-
-from rest_framework.schemas import get_schema_view
+from django.urls import include, path
 from rest_framework.permissions import AllowAny
+from rest_framework.schemas import get_schema_view
 
 schema_view = get_schema_view(
     title="hubuum API",

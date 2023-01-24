@@ -1,12 +1,11 @@
 """Test internals."""
 
 import pytest
-
 from rest_framework.test import APIClient
 
-from .base import HubuumAPITestCase
-
 from hubuum.exceptions import MissingParam
+
+from .base import HubuumAPITestCase
 
 
 class APITokenAuthenticationTestCase(HubuumAPITestCase):

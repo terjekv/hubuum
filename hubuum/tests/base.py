@@ -1,20 +1,16 @@
 """Provide a base class for testing model behaviour."""
-
-from django.test import TestCase
-from django.contrib.auth.models import Group
-
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import Group
+from django.test import TestCase
 
 from hubuum.exceptions import MissingParam
-
-from hubuum.models import (
+from hubuum.models import (  # Permissions,
     Namespace,
+    Person,
+    PurchaseDocuments,
+    PurchaseOrder,
     Room,
     Vendor,
-    Person,
-    PurchaseOrder,
-    PurchaseDocuments,
-    #    Permissions,
 )
 
 

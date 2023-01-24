@@ -1,11 +1,10 @@
 """Test authentication."""
 
-from datetime import timedelta
 import unittest.mock as mock
-
-from rest_framework.test import APIClient
+from datetime import timedelta
 
 from knox.auth import AuthToken
+from rest_framework.test import APIClient
 
 from .base import HubuumAPITestCase
 

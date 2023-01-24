@@ -1,4 +1,4 @@
-name: Tox tests with coverage
+name: tests
 
 on:
   - push

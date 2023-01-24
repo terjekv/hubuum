@@ -1,8 +1,8 @@
 """Permissions module for hubuum."""
 from rest_framework.permissions import (
+    SAFE_METHODS,
     DjangoObjectPermissions,
     IsAuthenticated,
-    SAFE_METHODS,
 )
 
 
