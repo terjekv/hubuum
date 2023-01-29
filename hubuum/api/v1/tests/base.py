@@ -11,11 +11,14 @@ from hubuum.models import Namespace
 
 # This testsuite design is based on the testsuite for MREG:
 # https://github.com/unioslo/mreg/blob/master/mreg/api/v1/tests/tests.py
-class HubuumAPITestCase(APITestCase):
+class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
     """Base APITestCase for the HubuumAPI (v1)."""
 
     def setUp(self):
         """By default setUp sets up an APIClient for the superuser with a token."""
+        self.user = None
+        self.namespace = None
+
         self.client = self.get_superuser_client()
 
     def get_superuser_client(self):
@@ -60,7 +63,7 @@ class HubuumAPITestCase(APITestCase):
             else:
                 username = "nobody"
 
-        self.user, created = get_user_model().objects.get_or_create(  # nosec
+        self.user, _ = get_user_model().objects.get_or_create(  # nosec
             username=username, password="test"
         )
         self.user.groups.clear()
@@ -92,7 +95,7 @@ class HubuumAPITestCase(APITestCase):
         if not isinstance(groups, (list, tuple)):
             groups = (groups,)
         for groupname in groups:
-            group, created = Group.objects.get_or_create(name=groupname)
+            group, _ = Group.objects.get_or_create(name=groupname)
             group.user_set.add(self.user)
 
     @staticmethod
@@ -109,7 +112,7 @@ class HubuumAPITestCase(APITestCase):
         """
         if path.startswith("/api/"):
             return path
-        elif path.startswith("/"):
+        if path.startswith("/"):
             return f"/api/v1/{path[1:]}"
         return f"/api/v1/{path}"
 

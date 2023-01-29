@@ -12,6 +12,7 @@ uritemplate
 tox
 pytest
 pytest-django
-SQLAlchemy
-mongoengine
 coveralls
+isort
+pylint
+pylint-django

@@ -2,8 +2,15 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.http import Http404
-from rest_framework import generics
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseServerError,
+)
+from rest_framework import generics, status
+from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.views import Response
 
 from hubuum.filters import HubuumObjectPermissionsFilter
 from hubuum.models import (
@@ -19,7 +26,11 @@ from hubuum.models import (
     User,
     Vendor,
 )
-from hubuum.permissions import IsSuperOrAdminOrReadOnly, NameSpaceOrReadOnly
+from hubuum.permissions import (
+    IsSuperOrAdminOrReadOnly,
+    NameSpaceOrReadOnly,
+    fully_qualified_operations,
+)
 
 from .serializers import (
     GroupSerializer,
@@ -37,7 +48,7 @@ from .serializers import (
 )
 
 
-class MultipleFieldLookupORMixin(object):
+class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
     """A mixin to allow us to look up objects beyond just the primary key.
 
     Set lookup_fields in the class to select what fields, in the given order,
@@ -59,25 +70,25 @@ class MultipleFieldLookupORMixin(object):
     def get_object(self):
         """Perform the actual lookup based on the lookup_fields."""
         queryset = self.get_queryset()
-        object = None
+        obj = None
         value = self.kwargs["val"]
         for field in self.lookup_fields:
             try:
                 # https://stackoverflow.com/questions/9122169/calling-filter-with-a-variable-for-field-name
                 # No, just no.
-                object = queryset.get(**{field: value})
-                if object:
+                obj = queryset.get(**{field: value})
+                if obj:
                     break
 
             # If we didn't get a hit, or an error, keep trying.
             # If we don't get a hit at all, we'll raise 404.
-            except Exception:  # nosec
+            except Exception:  # nosec pylint: disable=broad-except
                 pass
 
-        if object is None:
+        if obj is None:
             raise Http404()
 
-        return object
+        return obj
 
 
 class HubuumList(generics.ListCreateAPIView):
@@ -162,12 +173,94 @@ class NamespaceList(HubuumList):
 
 
 class NamespaceDetail(HubuumDetail):
-    """Get, Patch, or Destroy a host."""
+    """Get, Patch, or Destroy a namespace."""
 
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
     lookup_fields = ("id", "name")
     permission_classes = (NameSpaceOrReadOnly,)
+
+
+class NamespaceGroups(
+    MultipleFieldLookupORMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    """List groups that can access a namespace."""
+
+    def get(self, request, *args, **kwargs):
+        """Get all groups that have access to a given namespace."""
+        namespace_object = self.get_object()
+        qs = Permission.objects.filter(namespace=namespace_object.id).values("group")
+        groups = Group.objects.filter(id__in=qs)
+
+        return Response(GroupSerializer(groups, many=True).data)
+
+    def patch(self, request, *args, **kwargs):
+        """Disallow patch."""
+        raise MethodNotAllowed(request.method)
+
+    def post(self, request, *args, **kwargs):
+        """Put associates a group with a namespace.
+
+        /namespace/<namespaceid>/groups
+            {
+                group = 1,
+                has_read = 1,
+                has_delete = 0,
+                has_create = 0,
+                has_update = 0,
+                has_namespace = 0,
+            }
+
+        Transparently creates a permission object.
+        """
+        try:
+            groupid = request.data.pop("group")
+        except KeyError:
+            return HttpResponseBadRequest("No group argument provided")
+        except Exception:  # pylint: disable=broad-except
+            return HttpResponseServerError("Unhandled error!")
+
+        group = None
+        for field in self.lookup_fields:
+            try:
+                group = Group.objects.get(**{field: groupid})
+                break
+            except Exception:  # nosec pylint: disable=broad-except
+                pass
+
+        if not group:
+            return HttpResponse(
+                status=status.HTTP_404_NOT_FOUND, reason=f"Group not found: '{groupid}'"
+            )
+
+        if set(request.data.keys()).isdisjoint(fully_qualified_operations()):
+            return HttpResponseBadRequest(
+                f"Missing at least one of '{fully_qualified_operations()}'"
+            )
+
+        params = {}
+        for key in request.data.keys():
+            params[key] = bool(request.data[key])
+
+        # Check if the object (namespace, group) already exists.
+        namespace_object = self.get_object()
+        try:
+            Permission.objects.get(namespace=namespace_object, group=group)
+            return HttpResponse(status=status.HTTP_409_CONFLICT)
+        except Permission.DoesNotExist:
+            pass
+
+        try:
+            Permission.objects.create(namespace=namespace_object, group=group, **params)
+            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+        except Exception:  # pylint: disable=broad-except
+            return HttpResponseServerError()
+
+    permission_classes = (NameSpaceOrReadOnly,)
+    lookup_fields = ("id", "name")
+    serializer_class = GroupSerializer
+    queryset = Namespace.objects.all()
 
 
 class HostTypeList(HubuumList):

@@ -20,9 +20,19 @@ class CustomObjectPermissions(DjangoObjectPermissions):
     }
 
 
+def operations():
+    """Define the list of valid operations."""
+    return ("create", "read", "update", "delete", "namespace")
+
+
+def fully_qualified_operations():
+    """Define the list of valid operations, fully qualified with the has_-prefix."""
+    return ["has_" + s for s in operations()]
+
+
 def operation_exists(permission):
     """Check if a permission label is valid."""
-    return permission in ("create", "read", "update", "delete", "namespace")
+    return permission in operations()
 
 
 def is_super_or_admin(user):
