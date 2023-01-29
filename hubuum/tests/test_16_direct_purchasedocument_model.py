@@ -20,13 +20,13 @@ class PurchaseDocumentsTestCase(HubuumModelTestCase):
                 po_number="6001",
             ),
         }
-        self.object = self._test_can_create_object(
+        self.obj = self._test_can_create_object(
             model=PurchaseDocuments, **self.attributes
         )
 
     def test_create_has_correct_values(self):
         """Check that a created object returns the same values we fed it (only name for now)."""
-        self._test_has_identical_values(object=self.object, dictionary=self.attributes)
+        self._test_has_identical_values(obj=self.obj, dictionary=self.attributes)
 
     def test_str(self):
         """Test that stringifying objects works as expected."""

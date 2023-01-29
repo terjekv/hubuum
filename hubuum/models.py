@@ -56,7 +56,7 @@ class User(AbstractUser):
 
         try:
             parent = Namespace.objects.get(name=scope[-1])
-        except Exception:
+        except Namespace.DoesNotExist:
             return False
 
         return Permission.objects.filter(

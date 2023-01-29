@@ -19,6 +19,6 @@ class InternalsTestCase(HubuumModelTestCase):
         with pytest.raises(MissingParam):
             self._test_has_identical_values()
         with pytest.raises(MissingParam):
-            self._test_has_identical_values(object=self.user)
+            self._test_has_identical_values(obj=self.user)
         with pytest.raises(MissingParam):
             self._test_has_identical_values(dictionary={})

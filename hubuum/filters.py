@@ -24,11 +24,11 @@ class HubuumObjectPermissionsFilter(filters.BaseFilterBackend):
         #        print("List of {}".format(model))
         if user.is_admin() or model_is_open(queryset.model._meta.model_name):
             return queryset
-        else:
-            res = Permission.objects.filter(has_read=True, group__in=user.groups.all())
-            if not res:
-                return []
-            return queryset.filter(namespace__in=res.namespace)
+
+        res = Permission.objects.filter(has_read=True, group__in=user.groups.all())
+        if not res:
+            return []
+        return queryset.filter(namespace__in=res.namespace)
 
 
 #        return get_objects_for_user(user, permission, queryset, **self.shortcut_kwargs)

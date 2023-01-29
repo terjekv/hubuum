@@ -235,15 +235,12 @@ class NamespaceGroups(
 
         if not isinstance(group, Group):
             return HttpResponse(
-                status=status.HTTP_404_NOT_FOUND,
-                reason="Group not found: '{}'".format(group),
+                status=status.HTTP_404_NOT_FOUND, reason=f"Group not found: '{group}'"
             )
 
         if set(request.data.keys()).isdisjoint(require_at_least_one_of):
             return HttpResponseBadRequest(
-                "Missing at least one argument from '{}'".format(
-                    require_at_least_one_of
-                )
+                f"Missing at least one argument from '{require_at_least_one_of}'"
             )
 
         params = {}
@@ -254,7 +251,7 @@ class NamespaceGroups(
         try:
             Permission.objects.get(namespace=namespace_object, group=group)
             return HttpResponse(status=status.HTTP_409_CONFLICT)
-        except Exception:  # nosec
+        except Permission.DoesNotExist:
             pass
 
         try:

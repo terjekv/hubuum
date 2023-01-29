@@ -60,7 +60,7 @@ class HubuumAPITestCase(APITestCase):
             else:
                 username = "nobody"
 
-        self.user, created = get_user_model().objects.get_or_create(  # nosec
+        self.user, _ = get_user_model().objects.get_or_create(  # nosec
             username=username, password="test"
         )
         self.user.groups.clear()
@@ -92,7 +92,7 @@ class HubuumAPITestCase(APITestCase):
         if not isinstance(groups, (list, tuple)):
             groups = (groups,)
         for groupname in groups:
-            group, created = Group.objects.get_or_create(name=groupname)
+            group, _ = Group.objects.get_or_create(name=groupname)
             group.user_set.add(self.user)
 
     @staticmethod
