@@ -265,7 +265,7 @@ class NamespaceGroups(
 
     permission_classes = (NameSpaceOrReadOnly,)
     lookup_fields = ("id", "name")
-    serializer = GroupSerializer
+    serializer_class = GroupSerializer
     queryset = Namespace.objects.all()
 
 
