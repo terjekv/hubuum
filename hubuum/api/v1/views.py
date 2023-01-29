@@ -162,7 +162,7 @@ class NamespaceList(HubuumList):
 
 
 class NamespaceDetail(HubuumDetail):
-    """Get, Patch, or Destroy a host."""
+    """Get, Patch, or Destroy a namespace."""
 
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
