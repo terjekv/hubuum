@@ -63,7 +63,7 @@ jobs:
       - name: Pylint
         run: pylint --recursive=y hubuum hubuumsite --load-plugins=pylint_django
         env:
-          DJANGO_SETTINGS_MODULE=hubuumsite.settings
+          DJANGO_SETTINGS_MODULE: hubuumsite.settings
       - name: Test coverage
         run: coverage run manage.py test -v2
       - name: Upload OpenAPI schema
