@@ -142,10 +142,36 @@ class APIPermissionTestCase(HubuumAPITestCase):
             "/namespaces/namespaceone/groups/",
             {"group": "groupone", "has_read": True},
         )
+        # Try that again. Get a conflict as the object already exists.
+        self.assert_post_and_409(
+            "/namespaces/namespaceone/groups/",
+            {"group": "groupone", "has_read": True},
+        )
         self.assert_post_and_204(
             "/namespaces/namespaceone/groups/",
             {"group": "grouptwo", "has_namespace": True},
         )
+        # Post with no such group
+        self.assert_post_and_404(
+            "/namespaces/namespaceone/groups/",
+            {"group": "nope", "has_read": True},
+        )
+        # Post with group missing
+        self.assert_post_and_400(
+            "/namespaces/namespaceone/groups/",
+            {"has_read": True},
+        )
+        # Post with no permissions given
+        self.assert_post_and_400(
+            "/namespaces/namespaceone/groups/",
+            {"group": "groupone"},
+        )
+        # Patch isn't implemented
+        self.assert_patch_and_405(
+            "/namespaces/namespaceone/groups/",
+            {"group": "grouptwo", "has_namespace": False, "has_create": True},
+        )
+
         response = self.assert_get("/namespaces/namespaceone/groups/")
         self.assertEqual(len(response.data), 2)
 

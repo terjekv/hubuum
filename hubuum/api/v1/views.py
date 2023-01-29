@@ -2,7 +2,6 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.core.exceptions import ObjectDoesNotExist
 from django.http import (
     Http404,
     HttpResponse,
@@ -231,11 +230,14 @@ class NamespaceGroups(
             try:
                 group = Group.objects.get(**{field: group})
                 break
-            except Exception:
+            except Exception:  # nosec
                 pass
 
-        if not group:
-            return Http404()
+        if not isinstance(group, Group):
+            return HttpResponse(
+                status=status.HTTP_404_NOT_FOUND,
+                reason="Group not found: '{}'".format(group),
+            )
 
         if set(request.data.keys()).isdisjoint(require_at_least_one_of):
             return HttpResponseBadRequest(
@@ -247,6 +249,13 @@ class NamespaceGroups(
         params = {}
         for key in request.data.keys():
             params[key] = True if request.data[key] else False
+
+        # Check if the object (namespace, group) already exists.
+        try:
+            Permission.objects.get(namespace=namespace_object, group=group)
+            return HttpResponse(status=status.HTTP_409_CONFLICT)
+        except Exception:  # nosec
+            pass
 
         try:
             Permission.objects.create(namespace=namespace_object, group=group, **params)
