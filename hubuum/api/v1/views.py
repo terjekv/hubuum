@@ -26,7 +26,11 @@ from hubuum.models import (
     User,
     Vendor,
 )
-from hubuum.permissions import IsSuperOrAdminOrReadOnly, NameSpaceOrReadOnly
+from hubuum.permissions import (
+    IsSuperOrAdminOrReadOnly,
+    NameSpaceOrReadOnly,
+    fully_qualified_operations,
+)
 
 from .serializers import (
     GroupSerializer,
@@ -211,36 +215,28 @@ class NamespaceGroups(
         Transparently creates a permission object.
         """
         try:
-            group = request.data.pop("group")
+            groupid = request.data.pop("group")
         except KeyError:
             return HttpResponseBadRequest("No group argument provided")
         except Exception:  # pylint: disable=broad-except
             return HttpResponseServerError("Unhandled error!")
 
-        namespace_object = self.get_object()
-        require_at_least_one_of = (
-            "has_read",
-            "has_create",
-            "has_update",
-            "has_delete",
-            "has_namespace",
-        )
-
+        group = None
         for field in self.lookup_fields:
             try:
-                group = Group.objects.get(**{field: group})
+                group = Group.objects.get(**{field: groupid})
                 break
             except Exception:  # nosec pylint: disable=broad-except
                 pass
 
-        if not isinstance(group, Group):
+        if not group:
             return HttpResponse(
-                status=status.HTTP_404_NOT_FOUND, reason=f"Group not found: '{group}'"
+                status=status.HTTP_404_NOT_FOUND, reason=f"Group not found: '{groupid}'"
             )
 
-        if set(request.data.keys()).isdisjoint(require_at_least_one_of):
+        if set(request.data.keys()).isdisjoint(fully_qualified_operations()):
             return HttpResponseBadRequest(
-                f"Missing at least one argument from '{require_at_least_one_of}'"
+                f"Missing at least one of '{fully_qualified_operations()}'"
             )
 
         params = {}
@@ -248,6 +244,7 @@ class NamespaceGroups(
             params[key] = bool(request.data[key])
 
         # Check if the object (namespace, group) already exists.
+        namespace_object = self.get_object()
         try:
             Permission.objects.get(namespace=namespace_object, group=group)
             return HttpResponse(status=status.HTTP_409_CONFLICT)
