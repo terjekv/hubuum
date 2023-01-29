@@ -214,7 +214,7 @@ class NamespaceGroups(
             group = request.data.pop("group")
         except KeyError:
             return HttpResponseBadRequest("No group argument provided")
-        except Exception as e:
+        except Exception:
             return HttpResponseServerError("Unhandled error!")
 
         namespace_object = self.get_object()
@@ -260,7 +260,7 @@ class NamespaceGroups(
         try:
             Permission.objects.create(namespace=namespace_object, group=group, **params)
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
+        except Exception:
             return HttpResponseServerError()
 
     permission_classes = (NameSpaceOrReadOnly,)

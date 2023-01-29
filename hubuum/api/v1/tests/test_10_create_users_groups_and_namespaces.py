@@ -133,6 +133,7 @@ class APIPermissionTestCase(HubuumAPITestCase):
     """Test creation and manipulation of permissions."""
 
     def test_group_namespace_endpoint(self):
+        """Test the endpoint /namespaces/namespaceid/groups/"""
         self.client = self.get_staff_client()
         self.assert_post("/namespaces/", {"name": "namespaceone"})
         self.assert_post("/groups/", {"name": "groupone"})
