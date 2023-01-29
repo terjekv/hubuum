@@ -114,7 +114,7 @@ class APINamespaceTestCase(HubuumAPITestCase):
         response = self.assert_post("/namespaces/", {"name": "namespaceone"})
         data = response.json()
         self.assertEqual(data["name"], "namespaceone")
-        self.assert_get_and_200("/namespace/namespaceone")
+        self.assert_get_and_200("/namespaces/namespaceone")
 
     def test_user_create_root_namespace(self):
         """Test users ability to create root namespaces."""
@@ -127,3 +127,30 @@ class APINamespaceTestCase(HubuumAPITestCase):
         self.assert_post_and_403("/namespaces/", {"name": "namespaceone.mine"})
 
         # Test giving the user access and create a scoped namespace
+
+
+class APIPermissionTestCase(HubuumAPITestCase):
+    """Test creation and manipulation of permissions."""
+
+    def test_group_namespace_endpoint(self):
+        self.client = self.get_staff_client()
+        self.assert_post("/namespaces/", {"name": "namespaceone"})
+        self.assert_post("/groups/", {"name": "groupone"})
+        self.assert_post("/groups/", {"name": "grouptwo"})
+        self.assert_get("/namespaces/namespaceone/groups/")
+        self.assert_post_and_204(
+            "/namespaces/namespaceone/groups/",
+            {"group": "groupone", "has_read": True},
+        )
+        self.assert_post_and_204(
+            "/namespaces/namespaceone/groups/",
+            {"group": "grouptwo", "has_namespace": True},
+        )
+        response = self.assert_get("/namespaces/namespaceone/groups/")
+        self.assertEqual(len(response.data), 2)
+
+
+#        response[0]["id"]
+#        self.assert_delete(
+#            "/namespaces/namespaceone/groups/groupone",
+#        )

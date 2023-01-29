@@ -2,8 +2,16 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.http import Http404
-from rest_framework import generics
+from django.core.exceptions import ObjectDoesNotExist
+from django.http import (
+    Http404,
+    HttpResponse,
+    HttpResponseBadRequest,
+    HttpResponseServerError,
+)
+from rest_framework import generics, status
+from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.views import Response
 
 from hubuum.filters import HubuumObjectPermissionsFilter
 from hubuum.models import (
@@ -168,6 +176,88 @@ class NamespaceDetail(HubuumDetail):
     serializer_class = NamespaceSerializer
     lookup_fields = ("id", "name")
     permission_classes = (NameSpaceOrReadOnly,)
+
+
+class NamespaceGroups(
+    MultipleFieldLookupORMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    """List groups that can access a namespace."""
+
+    def get(self, request, *args, **kwargs):
+        """Get all groups that have access to a given namespace."""
+        namespace_object = self.get_object()
+        qs = Permission.objects.filter(namespace=namespace_object.id).values("group")
+        groups = Group.objects.filter(id__in=qs)
+
+        return Response(GroupSerializer(groups, many=True).data)
+
+    def patch(self, request, *args, **kwargs):
+        """Disallow patch."""
+        raise MethodNotAllowed(request.method)
+
+    def post(self, request, *args, **kwargs):
+        """Put associates a group with a namespace.
+
+        /namespace/<namespaceid>/groups
+            {
+                group = 1,
+                has_read = 1,
+                has_delete = 0,
+                has_create = 0,
+                has_update = 0,
+                has_namespace = 0,
+            }
+
+        Transparently creates a permission object.
+        """
+        try:
+            group = request.data.pop("group")
+        except KeyError:
+            return HttpResponseBadRequest("No group argument provided")
+        except Exception as e:
+            return HttpResponseServerError("Unhandled error!")
+
+        namespace_object = self.get_object()
+        require_at_least_one_of = (
+            "has_read",
+            "has_create",
+            "has_update",
+            "has_delete",
+            "has_namespace",
+        )
+
+        for field in self.lookup_fields:
+            try:
+                group = Group.objects.get(**{field: group})
+                break
+            except Exception:
+                pass
+
+        if not group:
+            return Http404()
+
+        if set(request.data.keys()).isdisjoint(require_at_least_one_of):
+            return HttpResponseBadRequest(
+                "Missing at least one argument from '{}'".format(
+                    require_at_least_one_of
+                )
+            )
+
+        params = {}
+        for key in request.data.keys():
+            params[key] = True if request.data[key] else False
+
+        try:
+            Permission.objects.create(namespace=namespace_object, group=group, **params)
+            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return HttpResponseServerError()
+
+    permission_classes = (NameSpaceOrReadOnly,)
+    lookup_fields = ("id", "name")
+    serializer = GroupSerializer
+    queryset = Namespace.objects.all()
 
 
 class HostTypeList(HubuumList):
