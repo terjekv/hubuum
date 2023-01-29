@@ -23,7 +23,7 @@ urlpatterns = [
     path("namespaces/", views.NamespaceList.as_view()),
     path("namespace/<val>", views.NamespaceDetail.as_view(), name="namespace-detail"),
     path("hosts/", views.HostList.as_view()),
-    path("host/<pk>", views.HostDetail.as_view(), name="host-detail"),
+    path("host/<val>", views.HostDetail.as_view(), name="host-detail"),
     path("hosttypes/", views.HostTypeList.as_view()),
     path("hosttype/<str:pk>", views.HostTypeDetail.as_view(), name="hosttype-detail"),
     path("rooms/", views.RoomList.as_view()),

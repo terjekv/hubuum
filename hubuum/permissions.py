@@ -62,7 +62,7 @@ class NameSpaceOrReadOnly(IsSuperOrAdminOrReadOnly):
         - users with has_namespace for the namespace set
 
     Read access:
-        - Everyone
+        - Everyone logged in
     """
 
     def has_permission(self, request, view):

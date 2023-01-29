@@ -5,10 +5,10 @@ from rest_framework.test import APIClient
 
 from hubuum.exceptions import MissingParam
 
-from .base import HubuumAPITestCase
+from .base import HubuumAPIBaseTestCase
 
 
-class APITokenAuthenticationTestCase(HubuumAPITestCase):
+class APITokenAuthenticationTestCase(HubuumAPIBaseTestCase):
     """Test various token authentication operations."""
 
     def test_different_clients(self):

@@ -6,10 +6,10 @@ from datetime import timedelta
 from knox.auth import AuthToken
 from rest_framework.test import APIClient
 
-from .base import HubuumAPITestCase
+from .base import HubuumAPIBaseTestCase
 
 
-class APITokenAuthenticationTestCase(HubuumAPITestCase):
+class APITokenAuthenticationTestCase(HubuumAPIBaseTestCase):
     """Test various token authentication operations."""
 
     def test_user_access_without_authentication(self):

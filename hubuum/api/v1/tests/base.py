@@ -11,8 +11,13 @@ from hubuum.models import Namespace
 
 # This testsuite design is based on the testsuite for MREG:
 # https://github.com/unioslo/mreg/blob/master/mreg/api/v1/tests/tests.py
-class HubuumAPITestCase(APITestCase):
-    """Base APITestCase for the HubuumAPI (v1)."""
+class HubuumAPIBaseTestCase(APITestCase):
+    """Base APITestCase for the HubuumAPI (v1).
+
+    This class does NOT create any default namespaces, groups, or users.
+
+    self.client is initialized as a superuser client.
+    """
 
     def setUp(self):
         """By default setUp sets up an APIClient for the superuser with a token."""
@@ -252,6 +257,60 @@ class HubuumAPITestCase(APITestCase):
     def assert_post_and_409(self, path, *args, **kwargs):
         """Post and assert status as 409."""
         return self._assert_post_and_status(path, 409, *args, **kwargs)
+
+
+class HubuumAPITestCase(HubuumAPIBaseTestCase):
+    """Default APITestCase for the HubuumAPI (v1).
+
+    This class creates the following structures by default:
+
+    - Three clients (superuserclient, adminclient, userclient)
+    - Two namespaces (one, two)
+    - Two groups (one, two)
+    - Two users (one, two)
+    """
+
+    def setUp(self):
+        """Set up the expected structures for the tests."""
+        self.superuserclient = self.get_superuser_client()
+        self.adminclient = self.get_staff_client()
+        self.userclient = self.get_user_client()
+        self.client = self.superuserclient
+
+        self._objects = {"namespaces": {}, "users": {}, "groups": {}}
+
+        self.get_namespace("one")
+        self.get_namespace("two")
+
+        self.get_group("one")
+        self.get_group("two")
+
+        self.get_user("one")
+        self.get_user("two")
+
+    def get_namespace(self, name):
+        """Get or create a namespace with the given name."""
+        return self._get_or_create_object("namespaces", name)
+
+    def get_group(self, name):
+        """Get or create a group with the given name."""
+        return self._get_or_create_object("groups", name)
+
+    def get_user(self, name):
+        """Get or create a user with the given name."""
+        return self._get_or_create_object("users", name)
+
+    def _get_or_create_object(self, objecttype, name):
+        """Get or create a object of the given type."""
+        params = {"name": name}
+        path = "/" + objecttype + "/"
+        if objecttype == "users":
+            params = {"username": name, "password": "test "}
+
+        if name not in self._objects[objecttype]:
+            self._objects[objecttype][name] = self.assert_post(path, params)
+
+        return self._objects[objecttype][name]
 
 
 def clean_and_save(entity):
