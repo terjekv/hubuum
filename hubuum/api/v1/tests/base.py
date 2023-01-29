@@ -11,11 +11,14 @@ from hubuum.models import Namespace
 
 # This testsuite design is based on the testsuite for MREG:
 # https://github.com/unioslo/mreg/blob/master/mreg/api/v1/tests/tests.py
-class HubuumAPITestCase(APITestCase):
+class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
     """Base APITestCase for the HubuumAPI (v1)."""
 
     def setUp(self):
         """By default setUp sets up an APIClient for the superuser with a token."""
+        self.user = None
+        self.namespace = None
+
         self.client = self.get_superuser_client()
 
     def get_superuser_client(self):
@@ -109,7 +112,7 @@ class HubuumAPITestCase(APITestCase):
         """
         if path.startswith("/api/"):
             return path
-        elif path.startswith("/"):
+        if path.startswith("/"):
             return f"/api/v1/{path[1:]}"
         return f"/api/v1/{path}"
 

@@ -44,7 +44,7 @@ from .serializers import (
 )
 
 
-class MultipleFieldLookupORMixin(object):
+class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
     """A mixin to allow us to look up objects beyond just the primary key.
 
     Set lookup_fields in the class to select what fields, in the given order,
@@ -66,25 +66,25 @@ class MultipleFieldLookupORMixin(object):
     def get_object(self):
         """Perform the actual lookup based on the lookup_fields."""
         queryset = self.get_queryset()
-        object = None
+        obj = None
         value = self.kwargs["val"]
         for field in self.lookup_fields:
             try:
                 # https://stackoverflow.com/questions/9122169/calling-filter-with-a-variable-for-field-name
                 # No, just no.
-                object = queryset.get(**{field: value})
-                if object:
+                obj = queryset.get(**{field: value})
+                if obj:
                     break
 
             # If we didn't get a hit, or an error, keep trying.
             # If we don't get a hit at all, we'll raise 404.
-            except Exception:  # nosec
+            except Exception:  # nosec pylint: disable=broad-except
                 pass
 
-        if object is None:
+        if obj is None:
             raise Http404()
 
-        return object
+        return obj
 
 
 class HubuumList(generics.ListCreateAPIView):
@@ -214,7 +214,7 @@ class NamespaceGroups(
             group = request.data.pop("group")
         except KeyError:
             return HttpResponseBadRequest("No group argument provided")
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return HttpResponseServerError("Unhandled error!")
 
         namespace_object = self.get_object()
@@ -230,7 +230,7 @@ class NamespaceGroups(
             try:
                 group = Group.objects.get(**{field: group})
                 break
-            except Exception:  # nosec
+            except Exception:  # nosec pylint: disable=broad-except
                 pass
 
         if not isinstance(group, Group):
@@ -245,7 +245,7 @@ class NamespaceGroups(
 
         params = {}
         for key in request.data.keys():
-            params[key] = True if request.data[key] else False
+            params[key] = bool(request.data[key])
 
         # Check if the object (namespace, group) already exists.
         try:
@@ -257,7 +257,7 @@ class NamespaceGroups(
         try:
             Permission.objects.create(namespace=namespace_object, group=group, **params)
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return HttpResponseServerError()
 
     permission_classes = (NameSpaceOrReadOnly,)

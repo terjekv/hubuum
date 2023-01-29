@@ -1,7 +1,7 @@
 """Test authentication."""
 
-import unittest.mock as mock
 from datetime import timedelta
+from unittest import mock
 
 from knox.auth import AuthToken
 from rest_framework.test import APIClient
@@ -54,7 +54,7 @@ class APITokenAuthenticationTestCase(HubuumAPITestCase):
     def test_login_with_invalid_credentials(self):
         """Test logging in with invalid credentials."""
         self.client = APIClient()
-        """ Using wrong credentials should result in a 401 unauthorized """
+        # Using wrong credentials should result in a 401 unauthorized
         self.assert_post_and_401(
             "/api/auth/login/", {"username": "someone", "password": "incorrect"}
         )

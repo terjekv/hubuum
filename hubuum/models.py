@@ -78,23 +78,19 @@ class User(AbstractUser):
 
         try:
             operation, model = re.match(User.permissions_pattern, perm).groups()
-        except AttributeError:
+        except AttributeError as exc:
             raise MissingParam(
-                "Unknown permission '{}' passed to has_perm".format(perm)
-            )
+                f"Unknown permission '{perm}' passed to has_perm"
+            ) from exc
 
         if not (operation and model):
-            raise MissingParam(
-                "Unknown expression '{}' passed to has_perm".format(perm)
-            )
+            raise MissingParam(f"Unknown expression '{perm}' passed to has_perm")
 
         if operation_exists(operation) and model_exists(model):
             field = "has_" + operation
         else:
             raise MissingParam(
-                "Unknown operation or model '{} / {}' passed to has_perm".format(
-                    operation, model
-                )
+                f"Unknown operation or model '{operation} / {model}' passed to has_perm"
             )
 
         if obj:

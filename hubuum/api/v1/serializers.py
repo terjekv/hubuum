@@ -19,7 +19,7 @@ from hubuum.models import (
 )
 
 
-class ErrorOnBadFieldMixin:
+class ErrorOnBadFieldMixin:  # pylint: disable=too-few-public-methods
     """Raise validation errors on bad input.
 
     Django Rest Framework returns 200 OK for patches against both
@@ -36,11 +36,8 @@ class ErrorOnBadFieldMixin:
             if field.read_only and fieldname in provided_keys:
                 raise ValidationError(
                     code="write_on_read_only_field",
-                    detail={
-                        fieldname: (
-                            "You're trying to write to the field "
-                            "'{}' which is a read-only field.".format(fieldname)
-                        )
+                    detail={  # pylint: disable=undefined-loop-variable
+                        fieldname: (f"'{fieldname}' is a read-only field.")
                     },
                 )
 
@@ -48,11 +45,8 @@ class ErrorOnBadFieldMixin:
         if extra_keys:
             raise ValidationError(
                 code="write_on_non_existent_field",
-                detail={
-                    fieldname: (
-                        "You're trying to write to the field "
-                        "'{}' which does not exist.".format(fieldname)
-                    )
+                detail={  # pylint: disable=undefined-loop-variable
+                    fieldname: (f"{fieldname} does not exist.")
                 },
             )
 

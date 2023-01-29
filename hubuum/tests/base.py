@@ -37,6 +37,9 @@ class HubuumModelTestCase(TestCase):
         )
         self.assertIsNotNone(self.namespace)
 
+        self.attributes = {}
+        self.obj = None
+
     def attribute(self, key):
         """Fetch attributes from the attribute dictionary."""
         return self.attributes[key]

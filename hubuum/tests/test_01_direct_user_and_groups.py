@@ -17,6 +17,9 @@ class UserAndGroupTestCase(TestCase):
 
         self.groupname = "testgroup"
 
+        self.user = None
+        self.group = None
+
     def test_user_has_perm(self):
         """Test has_perm for input management."""
         self.user = User.objects.create(username=self.username, password=self.password)
