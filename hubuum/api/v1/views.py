@@ -10,6 +10,7 @@ from django.http import (
 )
 from rest_framework import generics, status
 from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.schemas.openapi import AutoSchema
 from rest_framework.views import Response
 
 from hubuum.filters import HubuumObjectPermissionsFilter
@@ -187,6 +188,16 @@ class NamespaceGroups(
 ):
     """List groups that can access a namespace."""
 
+    permission_classes = (NameSpaceOrReadOnly,)
+    lookup_fields = ("id", "name")
+    serializer_class = GroupSerializer
+    queryset = Namespace.objects.all()
+    schema = AutoSchema(
+        tags=["LISTVIEW"],
+        component_name="Namespace group permissions",
+        operation_id_base="NamespaceGroups",
+    )
+
     def get(self, request, *args, **kwargs):
         """Get all groups that have access to a given namespace."""
         namespace_object = self.get_object()
@@ -256,11 +267,6 @@ class NamespaceGroups(
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
         except Exception:  # pylint: disable=broad-except
             return HttpResponseServerError()
-
-    permission_classes = (NameSpaceOrReadOnly,)
-    lookup_fields = ("id", "name")
-    serializer_class = GroupSerializer
-    queryset = Namespace.objects.all()
 
 
 class HostTypeList(HubuumList):
