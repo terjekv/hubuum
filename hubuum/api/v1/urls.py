@@ -24,7 +24,11 @@ urlpatterns = [
     ),
     path("namespaces/", views.NamespaceList.as_view()),
     path("namespaces/<val>", views.NamespaceDetail.as_view(), name="namespace-detail"),
-    path("namespaces/<val>/groups/", views.NamespaceGroups.as_view()),
+    path(
+        "namespaces/<val>/groups/",
+        views.NamespaceGroups.as_view(),
+        name="namespace-groups",
+    ),
     path("hosts/", views.HostList.as_view()),
     path("hosts/<val>", views.HostDetail.as_view(), name="host-detail"),
     path("hosttypes/", views.HostTypeList.as_view()),
