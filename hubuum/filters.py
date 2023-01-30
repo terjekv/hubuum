@@ -22,7 +22,8 @@ class HubuumObjectPermissionsFilter(filters.BaseFilterBackend):
         #    Find all namespaces we can perform the given operation in.
 
         #        print("List of {}".format(model))
-        if user.is_admin() or model_is_open(queryset.model._meta.model_name):
+        model_name = queryset.model._meta.model_name  # pylint: disable=protected-access
+        if user.is_admin() or model_is_open(model_name):
             return queryset
 
         res = Permission.objects.filter(has_read=True, group__in=user.groups.all())
