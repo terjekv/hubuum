@@ -6,6 +6,7 @@ from django.http import (
     Http404,
     HttpResponse,
     HttpResponseBadRequest,
+    HttpResponseNotFound,
     HttpResponseServerError,
 )
 from rest_framework import generics, status
@@ -136,6 +137,99 @@ class GroupDetail(HubuumDetail):
     lookup_fields = ("id", "name")
 
 
+class GroupMembers(
+    MultipleFieldLookupORMixin,
+    generics.RetrieveAPIView,
+):
+    """List group members."""
+
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    lookup_fields = ("id", "name")
+    serializer_class = UserSerializer
+    queryset = Group.objects.all()
+    schema = AutoSchema(
+        tags=["LISTVIEW"],
+        component_name="Group memberships",
+        operation_id_base="Groupmemberships",
+    )
+
+    def get(self, request, *args, **kwargs):
+        """Get all users in the group."""
+        group_object = self.get_object()
+        users = User.objects.filter(groups=group_object)
+
+        return Response(UserSerializer(users, many=True).data)
+
+
+class GroupMembersUser(
+    MultipleFieldLookupORMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    """Modify users in groups."""
+
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    lookup_fields = ("id", "name")
+    serializer_class = UserSerializer
+    queryset = Group.objects.all()
+    schema = AutoSchema(
+        tags=["LISTVIEW"],
+        component_name="Group memberships users",
+        operation_id_base="Groupmembershipsusers",
+    )
+
+    def get(self, request, *args, **kwargs):
+        """Get user in group."""
+        group = self.get_object()
+        userid = kwargs["userid"]
+        user = None
+
+        for field in User.lookup_fields:
+            try:
+                user = User.objects.get(**{field: userid, "groups": group})
+                break
+            except Exception:  # nosec pylint: disable=broad-except
+                pass
+
+        if user:
+            return Response(UserSerializer(user).data)
+        return HttpResponseNotFound()
+
+    def patch(self, request, *args, **kwargs):
+        """Disallow patch."""
+        raise MethodNotAllowed(request.method)
+
+    def post(self, request, *args, **kwargs):
+        """Add a user to a group."""
+        group = self.get_object()
+        user = User.get_object(kwargs["userid"])
+
+        if user:
+            if group in user.groups.all():
+                return Response(
+                    f"User {user.id} is already a member of group {group.id}",
+                    status=status.HTTP_200_OK,
+                )
+
+            user.groups.add(group)
+            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+        return HttpResponseNotFound()
+
+    def delete(self, request, *args, **kwargs):
+        """Delete a user from a group."""
+        group = self.get_object()
+        user = User.get_object(kwargs["userid"])
+
+        if user:
+            print(group)
+            print(user.groups.all())
+            if group in user.groups.all():
+                user.groups.remove(group)
+                user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+        return HttpResponseNotFound()
+
+
 class PermissionList(HubuumList):
     """Get: List permissions. Post: Add permission."""
 
@@ -229,8 +323,8 @@ class NamespaceGroups(
             groupid = request.data.pop("group")
         except KeyError:
             return HttpResponseBadRequest("No group argument provided")
-        except Exception:  # pylint: disable=broad-except
-            return HttpResponseServerError("Unhandled error!")
+        #        except Exception:  # pylint: disable=broad-except
+        #            return HttpResponseServerError("Unhandled error!")
 
         group = None
         for field in self.lookup_fields:
@@ -242,7 +336,7 @@ class NamespaceGroups(
 
         if not group:
             return HttpResponse(
-                status=status.HTTP_404_NOT_FOUND, reason=f"Group not found: '{groupid}'"
+                f"Group not found: '{groupid}'", status=status.HTTP_404_NOT_FOUND
             )
 
         if set(request.data.keys()).isdisjoint(fully_qualified_operations()):
@@ -258,7 +352,10 @@ class NamespaceGroups(
         namespace_object = self.get_object()
         try:
             Permission.objects.get(namespace=namespace_object, group=group)
-            return HttpResponse(status=status.HTTP_409_CONFLICT)
+            return HttpResponse(
+                f"{group.name} already has permissions on {namespace_object.name}",
+                status=status.HTTP_409_CONFLICT,
+            )
         except Permission.DoesNotExist:
             pass
 

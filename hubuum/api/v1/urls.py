@@ -16,6 +16,8 @@ urlpatterns = [
     path("users/<val>", views.UserDetail.as_view()),
     path("groups/", views.GroupList.as_view()),
     path("groups/<val>", views.GroupDetail.as_view()),
+    path("groups/<val>/members/", views.GroupMembers.as_view()),
+    path("groups/<val>/members/<userid>", views.GroupMembersUser.as_view()),
     #    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
     #    path('token-auth/', tokens.ObtainExpiringAuthToken.as_view()),
     path("permissions/", views.PermissionList.as_view()),

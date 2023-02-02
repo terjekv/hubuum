@@ -29,8 +29,24 @@ class User(AbstractUser):
     """Extension to the default User class."""
 
     permissions_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
+    lookup_fields = ["id", "username", "email"]
 
     _group_list = None
+
+    @classmethod
+    def get_object(cls, lookup_value):
+        """Get a user based on the lookup fields."""
+        obj = None
+        for field in cls.lookup_fields:
+            try:
+                obj = cls.objects.get(**{field: lookup_value})
+                if obj:
+                    break
+
+            except Exception:  # nosec pylint: disable=broad-except
+                pass
+
+        return obj
 
     def is_admin(self):
         """Check if the user is any type of admin (staff/superadmin) (or in a similar group?)."""
@@ -107,6 +123,11 @@ class HubuumModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
+
     class Meta:
         """Meta data for the class."""
 
@@ -116,6 +137,8 @@ class HubuumModel(models.Model):
 class NamespacedHubuumModel(HubuumModel):
     """Base model for a namespaced Hubuum Objects."""
 
+    # When we delete a namespace, do we want *all* the objects to disappear?
+    # That'd be harsh.
     namespace = models.ForeignKey(
         "Namespace",
         on_delete=models.DO_NOTHING,
@@ -132,7 +155,7 @@ class NamespacedHubuumModel(HubuumModel):
 class Namespace(HubuumModel):
     """The namespace ('domain') of an object."""
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
 
 
@@ -149,9 +172,11 @@ class Permission(HubuumModel):
 
     """
 
+    # If the namespace the permission points to goes away, clear the entry.
     namespace = models.ForeignKey(
         "Namespace", related_name="p_namespace", on_delete=models.CASCADE
     )
+    # If the group the permission uses goes away, clear the entry.
     group = models.ForeignKey(
         "auth.Group", related_name="p_group", on_delete=models.CASCADE
     )
@@ -205,13 +230,6 @@ class Host(NamespacedHubuumModel):
         related_name="hosts",
         blank=True,
         null=True,
-    )
-
-    namespace = models.ForeignKey(
-        "Namespace",
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
     )
 
     def __str__(self):

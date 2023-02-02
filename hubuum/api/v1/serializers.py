@@ -1,4 +1,5 @@
 """Versioned (v1) serializers of the hubuum models."""
+from django.contrib.auth.hashers import make_password
 from django.contrib.auth.models import Group
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -31,8 +32,14 @@ class ErrorOnBadFieldMixin:  # pylint: disable=too-few-public-methods
 
     def run_validation(self, data=empty):
         """Run the validation of the input."""
-        provided_keys = data.keys()
-        for fieldname, field in self.fields.items():
+        if isinstance(data, dict):
+            provided_keys = data.keys()
+        else:
+            provided_keys = data[::2]
+
+        items = self.fields.items()
+
+        for fieldname, field in items:
             if field.read_only and fieldname in provided_keys:
                 raise ValidationError(
                     code="write_on_read_only_field",
@@ -46,7 +53,7 @@ class ErrorOnBadFieldMixin:  # pylint: disable=too-few-public-methods
             raise ValidationError(
                 code="write_on_non_existent_field",
                 detail={  # pylint: disable=undefined-loop-variable
-                    fieldname: (f"{fieldname} does not exist.")
+                    "extra_keys": f"{extra_keys} do not exist."
                 },
             )
 
@@ -59,6 +66,18 @@ class HubuumSerializer(ErrorOnBadFieldMixin, serializers.ModelSerializer):
 
 class UserSerializer(HubuumSerializer):
     """Serialize a User object."""
+
+    password = serializers.CharField(
+        write_only=True,
+        required=True,
+        help_text="Leave empty if no change needed",
+        style={"input_type": "password", "placeholder": "Password"},
+    )
+
+    def create(self, validated_data):
+        """Ensure the password is hashed on user creation."""
+        validated_data["password"] = make_password(validated_data.get("password"))
+        return super().create(validated_data)
 
     class Meta:
         """How to serialize the object."""
