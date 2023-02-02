@@ -6,7 +6,7 @@ from hubuum.models import User
 
 
 def get_user(user_identifier):
-    """Tries to find a user based on the identifier.
+    """Try to find a user based on the identifier.
 
     Searches in User.lookup_fields
     """
@@ -14,13 +14,12 @@ def get_user(user_identifier):
 
 
 def get_group(group_identifier):
-    """Tries to find a group based on the identifier.
+    """Try to find a group based on the identifier.
 
     param: group_identifier
 
     return: group object or None
     """
-
     return get_object(Group, group_identifier, lookup_fields=["id", "name"])
 
 

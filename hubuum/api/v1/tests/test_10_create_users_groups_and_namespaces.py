@@ -113,7 +113,6 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
 
     def test_combined_reference_singular_endpoint(self):
         """Test the /groups/<gid>/members/<uid> endpoint."""
-
         self.client = self.get_staff_client()
         self.assert_post("/groups/", {"name": "groupone"})
         self.assert_post(
