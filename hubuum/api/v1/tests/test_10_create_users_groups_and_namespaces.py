@@ -178,17 +178,13 @@ class APIPreliminaryNamespaceTestCase(HubuumAPITestCase):
 class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
     """Test creation and manipulation of permissions."""
 
-    def test_group_namespace_endpoint(self):
-        """Test the combined namespace and group endpoints."""
-        self.client = self.get_staff_client()
+    def test_group_namespace_endpoint_post(self):
+        """Test posting to the combined namespace and group endpoints."""
         self.assert_post("/namespaces/", {"name": "namespaceone"})
         self.assert_post("/groups/", {"name": "groupone"})
         self.assert_post("/groups/", {"name": "grouptwo"})
-        self.assert_get("/namespaces/namespaceone/groups/")
 
-        self.assert_get_and_404("/namespaces/namespacedoesnotexist/groups/")
         self.assert_post_and_404("/namespaces/namespacedoesnotexist/groups/groupone")
-
         self.assert_post_and_204(
             "/namespaces/namespaceone/groups/groupone",
             {"has_read": True},
@@ -204,10 +200,6 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
             {"has_namespacebork": False, "has_create": True},
         )
 
-        self.assert_post_and_204(
-            "/namespaces/namespaceone/groups/grouptwo",
-            {"has_namespace": True},
-        )
         # Post with no such group
         self.assert_post_and_404(
             "/namespaces/namespaceone/groups/nosuchgroup",
@@ -222,6 +214,27 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
         self.assert_post_and_400(
             "/namespaces/namespaceone/groups/groupone",
         )
+        self.assert_delete("/namespaces/namespaceone")
+
+    def test_group_namespace_endpoint(self):
+        """Test the combined namespace and group endpoints."""
+        self.client = self.get_staff_client()
+        self.assert_post("/namespaces/", {"name": "namespaceone"})
+        self.assert_post("/groups/", {"name": "groupone"})
+        self.assert_post("/groups/", {"name": "grouptwo"})
+        self.assert_get("/namespaces/namespaceone/groups/")
+
+        self.assert_post_and_204(
+            "/namespaces/namespaceone/groups/grouptwo",
+            {"has_namespace": True},
+        )
+
+        self.assert_get_and_404("/namespaces/namespacedoesnotexist/groups/")
+
+        self.assert_post_and_204(
+            "/namespaces/namespaceone/groups/groupone",
+            {"has_read": True},
+        )
 
         # Patch isn't implemented
         self.assert_patch_and_405(
@@ -233,15 +246,7 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
             "/namespaces/namespaceone/groups/nosuchgroup",
         )
 
-        self.assert_get_elements("/namespaces/namespaceone/groups/", 2)
-        self.assert_get_elements("/permissions/", 2)
-
         self.assert_get(
-            "/namespaces/namespaceone/groups/grouptwo",
-        )
-        self.assert_delete("/namespaces/namespaceone/groups/grouptwo")
-
-        self.assert_get_and_404(
             "/namespaces/namespaceone/groups/grouptwo",
         )
 
@@ -249,13 +254,36 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
             "/namespaces/namespaceone/groups/groupdoesnotexist",
         )
 
+        self.assert_delete("/namespaces/namespaceone")
+
+    def test_group_namespace_endpoint_delete(self):
+        """Test deleting combined namespace and group endpoints."""
+
+        self.client = self.get_staff_client()
+        self.assert_post("/namespaces/", {"name": "namespaceone"})
+        self.assert_post("/groups/", {"name": "groupone"})
+        self.assert_post("/groups/", {"name": "grouptwo"})
+
+        self.assert_post_and_204(
+            "/namespaces/namespaceone/groups/grouptwo",
+            {"has_read": True},
+        )
+
+        self.assert_post_and_204(
+            "/namespaces/namespaceone/groups/groupone",
+            {"has_read": True},
+        )
+
+        self.assert_get_elements("/namespaces/namespaceone/groups/", 2)
+        self.assert_get_elements("/permissions/", 2)
+
+        self.assert_delete("/namespaces/namespaceone/groups/grouptwo")
+
+        self.assert_get_and_404(
+            "/namespaces/namespaceone/groups/grouptwo",
+        )
+
         self.assert_get_elements("/namespaces/namespaceone/groups/", 1)
         self.assert_get_elements("/permissions/", 1)
         self.assert_delete("/namespaces/namespaceone")
         self.assert_get_elements("/permissions/", 0)
-
-
-#        response[0]["id"]
-#        self.assert_delete(
-#            "/namespaces/namespaceone/groups/groupone",
-#        )
