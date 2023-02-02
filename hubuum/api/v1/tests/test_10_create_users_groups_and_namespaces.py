@@ -100,24 +100,36 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         self.client = self.get_user_client()
         self.assert_delete_and_403("/groups/0")
 
-    def test_combined_reference_endpoint(self):
-        """Test the /groups/<gid>/members endpoint."""
+    def test_combined_reference_list_endpoint(self):
+        """Test the /groups/<gid>/members/ endpoint."""
         self.client = self.get_staff_client()
         self.assert_post("/groups/", {"name": "groupone"})
         self.assert_get_elements("/groups/groupone/members/", 0)
-        self.assert_post(
-            "/users/",
-            {"username": "userone", "password": "test", "email": "test@test.nowhere"},
-        )
         self.assert_get_and_404("/groups/groupnope/members/")
         self.assert_post_and_405("/groups/groupnope/members/")
         self.assert_patch_and_405("/groups/groupnope/members/")
 
-        self.assert_get_and_404("/groups/groupone/members/userone")
+        self.assert_delete("/groups/groupone")
+
+    def test_combined_reference_singular_endpoint(self):
+        """Test the /groups/<gid>/members/<uid> endpoint."""
+
+        self.client = self.get_staff_client()
+        self.assert_post("/groups/", {"name": "groupone"})
+        self.assert_post(
+            "/users/",
+            {"username": "userone", "password": "test", "email": "test@test.nowhere"},
+        )
 
         self.assert_post_and_201("/groups/groupone/members/userone")
         self.assert_post_and_200("/groups/groupone/members/userone")
+
+        self.assert_get_and_404("/groups/groupnotfound/members/")
+        self.assert_get_and_404("/groups/groupnotfound/members/userone")
+
+        self.assert_post_and_404("/groups/groupnotfound/members/userone")
         self.assert_post_and_404("/groups/groupone/members/usernotfound")
+
         self.assert_get("/groups/groupone/members/userone")
         self.assert_get_elements("/groups/groupone/members/", 1)
 
@@ -127,6 +139,9 @@ class APIUsersAndGroupsTestCase(HubuumAPITestCase):
         self.assert_get_and_404("/groups/groupone/members/userone")
         self.assert_patch_and_405("/groups/groupone/members/userone")
         self.assert_get_elements("/groups/groupone/members/", 0)
+
+        self.assert_delete("/groups/groupone")
+        self.assert_delete("/users/userone")
 
         # This should delete all members from the group
 
@@ -165,44 +180,50 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
     """Test creation and manipulation of permissions."""
 
     def test_group_namespace_endpoint(self):
-        """Test the endpoint /namespaces/namespaceid/groups/."""
+        """Test the combined namespace and group endpoints."""
         self.client = self.get_staff_client()
         self.assert_post("/namespaces/", {"name": "namespaceone"})
         self.assert_post("/groups/", {"name": "groupone"})
         self.assert_post("/groups/", {"name": "grouptwo"})
         self.assert_get("/namespaces/namespaceone/groups/")
+
+        self.assert_get_and_404("/namespaces/namespacedoesnotexist/groups/")
+        self.assert_post_and_404("/namespaces/namespacedoesnotexist/groups/groupone")
+
         self.assert_post_and_204(
-            "/namespaces/namespaceone/groups/",
-            {"group": "groupone", "has_read": True},
+            "/namespaces/namespaceone/groups/groupone",
+            {"has_read": True},
         )
         # Try that again. Get a conflict as the object already exists.
         self.assert_post_and_409(
-            "/namespaces/namespaceone/groups/",
-            {"group": "groupone", "has_read": True},
+            "/namespaces/namespaceone/groups/groupone",
+            {"has_read": True},
         )
         self.assert_post_and_204(
-            "/namespaces/namespaceone/groups/",
-            {"group": "grouptwo", "has_namespace": True},
+            "/namespaces/namespaceone/groups/grouptwo",
+            {"has_namespace": True},
         )
         # Post with no such group
         self.assert_post_and_404(
-            "/namespaces/namespaceone/groups/",
-            {"group": "nope", "has_read": True},
+            "/namespaces/namespaceone/groups/nosuchgroup",
+            {"has_read": True},
         )
         # Post with group missing
-        self.assert_post_and_400(
+        self.assert_post_and_405(
             "/namespaces/namespaceone/groups/",
             {"has_read": True},
         )
         # Post with no permissions given
         self.assert_post_and_400(
-            "/namespaces/namespaceone/groups/",
-            {"group": "groupone"},
+            "/namespaces/namespaceone/groups/groupone",
         )
         # Patch isn't implemented
         self.assert_patch_and_405(
-            "/namespaces/namespaceone/groups/",
-            {"group": "grouptwo", "has_namespace": False, "has_create": True},
+            "/namespaces/namespaceone/groups/grouptwo",
+            {"has_namespace": False, "has_create": True},
+        )
+        self.assert_get_and_404(
+            "/namespaces/namespaceone/groups/nosuchgroup",
         )
 
         self.assert_get_elements("/namespaces/namespaceone/groups/", 2)

@@ -3,7 +3,7 @@
 import re
 
 from django.apps import apps
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 
 from hubuum.exceptions import MissingParam
@@ -32,21 +32,6 @@ class User(AbstractUser):
     lookup_fields = ["id", "username", "email"]
 
     _group_list = None
-
-    @classmethod
-    def get_object(cls, lookup_value):
-        """Get a user based on the lookup fields."""
-        obj = None
-        for field in cls.lookup_fields:
-            try:
-                obj = cls.objects.get(**{field: lookup_value})
-                if obj:
-                    break
-
-            except Exception:  # nosec pylint: disable=broad-except
-                pass
-
-        return obj
 
     def is_admin(self):
         """Check if the user is any type of admin (staff/superadmin) (or in a similar group?)."""
@@ -115,6 +100,14 @@ class User(AbstractUser):
             ).exists()
 
         return False
+
+
+class HubuumGroup(Group):
+    class Meta:
+        proxy = True
+
+    def myFunction(self):
+        return True
 
 
 class HubuumModel(models.Model):
