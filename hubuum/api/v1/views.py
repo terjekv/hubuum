@@ -335,9 +335,7 @@ class NamespaceGroups(
                 pass
 
         if not group:
-            return HttpResponse(
-                f"Group not found: '{groupid}'", status=status.HTTP_404_NOT_FOUND
-            )
+            return HttpResponse("Group not found.", status=status.HTTP_404_NOT_FOUND)
 
         if set(request.data.keys()).isdisjoint(fully_qualified_operations()):
             return HttpResponseBadRequest(
@@ -353,7 +351,7 @@ class NamespaceGroups(
         try:
             Permission.objects.get(namespace=namespace_object, group=group)
             return HttpResponse(
-                f"{group.name} already has permissions on {namespace_object.name}",
+                reason=f"{group.name} already has permissions on {namespace_object.name}",
                 status=status.HTTP_409_CONFLICT,
             )
         except Permission.DoesNotExist:
