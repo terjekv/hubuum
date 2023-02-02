@@ -3,7 +3,7 @@
 import re
 
 from django.apps import apps
-from django.contrib.auth.models import AbstractUser, Group
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 from hubuum.exceptions import MissingParam
@@ -100,14 +100,6 @@ class User(AbstractUser):
             ).exists()
 
         return False
-
-
-class HubuumGroup(Group):
-    class Meta:
-        proxy = True
-
-    def myFunction(self):
-        return True
 
 
 class HubuumModel(models.Model):
