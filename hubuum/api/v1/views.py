@@ -294,9 +294,6 @@ class NamespaceMembers(
         """Get all groups that have access to a given namespace."""
         namespace = self.get_object()
 
-        if not namespace:
-            return HttpResponseNotFound()
-
         qs = Permission.objects.filter(namespace=namespace.id).values("group")
         groups = Group.objects.filter(id__in=qs)
 
@@ -329,9 +326,9 @@ class NamespaceMembersGroup(
             return HttpResponse("Group not found.", status=status.HTTP_404_NOT_FOUND)
 
         if not Permission.objects.filter(namespace=namespace, group=group).exists():
-            return HttpResponseNotFound
+            return HttpResponseNotFound()
 
-        return Response(GroupSerializer(group, many=True).data)
+        return Response(GroupSerializer(group).data)
 
     # TODO: Should be used to update a groups permissions for the namespace.
     def patch(self, request, *args, **kwargs):
@@ -365,25 +362,44 @@ class NamespaceMembersGroup(
 
         # Check if the object (namespace, group) already exists.
         # If so, they need to patch, not put.
-        try:
-            Permission.objects.get(namespace=namespace, group=group)
+        if Permission.objects.filter(namespace=namespace, group=group).exists():
             return HttpResponse(
                 reason=f"{group.name} already has permissions on {namespace.name}",
                 status=status.HTTP_409_CONFLICT,
             )
-        except Permission.DoesNotExist:
-            pass
 
         # We now have some params, so we generated a dict of options to set, and then
         # forcibly add has_read=True to ensure that also gets set.
         params = {}
-        for key in request.data.keys():
-            params[key] = bool(request.data[key])
+        for key in fully_qualified_operations():
+            if key in request.data:
+                params[key] = bool(request.data[key])
+                request.data.pop(key)
+
+        # Check for remaining junk in the request data.
+        if request.data.keys():
+            return HttpResponseBadRequest()
 
         params["has_read"] = True
 
         try:
             Permission.objects.create(namespace=namespace, group=group, **params)
+            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+        except Exception:  # pylint: disable=broad-except
+            return HttpResponseServerError()
+
+    def delete(self, request, *args, **kwargs):
+        """Delete disassociates a group with a namespace.
+
+        Transparently deletes the permission object.
+        """
+        namespace = self.get_object()
+        group = get_group(kwargs["groupid"])
+        if not group:
+            return HttpResponse("Group not found.", status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            Permission.objects.get(namespace=namespace, group=group).delete()
             return HttpResponse(status=status.HTTP_204_NO_CONTENT)
         except Exception:  # pylint: disable=broad-except
             return HttpResponseServerError()

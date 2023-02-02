@@ -198,6 +198,12 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
             "/namespaces/namespaceone/groups/groupone",
             {"has_read": True},
         )
+
+        self.assert_post_and_400(
+            "/namespaces/namespaceone/groups/grouptwo",
+            {"has_namespacebork": False, "has_create": True},
+        )
+
         self.assert_post_and_204(
             "/namespaces/namespaceone/groups/grouptwo",
             {"has_namespace": True},
@@ -216,17 +222,35 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
         self.assert_post_and_400(
             "/namespaces/namespaceone/groups/groupone",
         )
+
         # Patch isn't implemented
         self.assert_patch_and_405(
             "/namespaces/namespaceone/groups/grouptwo",
             {"has_namespace": False, "has_create": True},
         )
+
         self.assert_get_and_404(
             "/namespaces/namespaceone/groups/nosuchgroup",
         )
 
         self.assert_get_elements("/namespaces/namespaceone/groups/", 2)
         self.assert_get_elements("/permissions/", 2)
+
+        self.assert_get(
+            "/namespaces/namespaceone/groups/grouptwo",
+        )
+        self.assert_delete("/namespaces/namespaceone/groups/grouptwo")
+
+        self.assert_get_and_404(
+            "/namespaces/namespaceone/groups/grouptwo",
+        )
+
+        self.assert_get_and_404(
+            "/namespaces/namespaceone/groups/groupdoesnotexist",
+        )
+
+        self.assert_get_elements("/namespaces/namespaceone/groups/", 1)
+        self.assert_get_elements("/permissions/", 1)
         self.assert_delete("/namespaces/namespaceone")
         self.assert_get_elements("/permissions/", 0)
 

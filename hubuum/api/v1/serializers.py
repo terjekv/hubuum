@@ -32,11 +32,11 @@ class ErrorOnBadFieldMixin:  # pylint: disable=too-few-public-methods
 
     def run_validation(self, data=empty):
         """Run the validation of the input."""
-        if isinstance(data, dict):
-            provided_keys = data.keys()
-        else:
-            provided_keys = data[::2]
-
+        if not isinstance(data, dict):
+            raise ValidationError(
+                code="not_a_dict", detail={"typeerror": "Expected a dict."}
+            )
+        provided_keys = data.keys()
         items = self.fields.items()
 
         for fieldname, field in items:

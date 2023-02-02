@@ -5,12 +5,19 @@ from .base import HubuumAPITestCase
 class APINamespace(HubuumAPITestCase):
     """Test namespaces."""
 
-    def test_readonly_fields(self):
+    def test_field_validation(self):
         """Test that we can't write to read-only fields."""
         self.assert_post("/namespaces/", {"name": "namespaceone"})
         self.assert_patch_and_400(
-            "/namespaces/namespaceone", {"created_at", "2022-01-01"}
+            "/namespaces/namespaceone", {"created_at": "2022-01-01"}
         )
+        self.assert_patch_and_400(
+            "/namespaces/namespaceone", {"nosuchkey": "2022-01-01"}
+        )
+
+        # NOTICE: Comma, not colon. This leads to a set being serialized as a list...
+        self.assert_patch_and_400("/namespaces/namespaceone", {"not_a", "dict"})
+        self.assert_delete("/namespaces/namespaceone")
 
     def test_namespaces_as_superuser(self):
         """Test namespaces as a superuser."""
