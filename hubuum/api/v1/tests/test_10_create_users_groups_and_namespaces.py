@@ -258,7 +258,6 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
 
     def test_group_namespace_endpoint_delete(self):
         """Test deleting combined namespace and group endpoints."""
-
         self.client = self.get_staff_client()
         self.assert_post("/namespaces/", {"name": "namespaceone"})
         self.assert_post("/groups/", {"name": "groupone"})

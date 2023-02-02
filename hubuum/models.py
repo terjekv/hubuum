@@ -51,18 +51,19 @@ class User(AbstractUser):
         Only admin users can create root namespaces.
         """
         scope = namespace.split(".")
-
         if len(scope) == 0:
             return False
 
-        try:
-            parent = Namespace.objects.get(name=scope[-1])
-        except Namespace.DoesNotExist:
-            return False
+        return False
 
-        return Permission.objects.filter(
-            namespace=parent.id, has_namespace=True, group__in=self.groups.all()
-        ).exists()
+    #        try:
+    #            parent = Namespace.objects.get(name=scope[-1])
+    #        except Namespace.DoesNotExist:
+    #            return False
+
+    #        return Permission.objects.filter(
+    #            namespace=parent.id, has_namespace=True, group__in=self.groups.all()
+    #        ).exists()
 
     def has_perm(self, perm: str, obj: object = None) -> bool:
         """
