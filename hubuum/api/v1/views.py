@@ -343,19 +343,26 @@ class NamespaceMembersGroup(
         """
         namespace = self.get_object()
         group = get_group(kwargs["groupid"])
-        instance = get_permission(namespace, group, throw_exception=False)
+        instance = get_permission(namespace, group, raise_exception=False)
 
         if set(request.data.keys()).isdisjoint(fully_qualified_operations()):
             raise ParseError(
                 detail=f"Missing at least one of '{fully_qualified_operations()}'"
             )
 
-        params = self._create_params(request, fully_qualified_operations())
-
         if instance:
             raise Conflict()
 
-        Permission.objects.create(namespace=namespace, group=group, **params)
+        params = {"namespace": namespace.id, "group": group.id, **request.data}
+        serializer = self.get_serializer(data=params, partial=False)
+        serializer.is_valid(raise_exception=True)
+
+        create = serializer.data
+        create["namespace"] = namespace
+        create["group"] = group
+        create["has_read"] = True
+
+        Permission.objects.create(**create)
         return HttpResponse(status=status.HTTP_204_NO_CONTENT)
 
     def delete(self, request, *args, **kwargs):
@@ -369,22 +376,6 @@ class NamespaceMembersGroup(
 
         permission.delete()
         return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-
-    def _create_params(self, request, keys):
-        """Parse the permissions set."""
-        params = {}
-        for key in keys:
-            if key in request.data:
-                params[key] = bool(request.data[key])
-                request.data.pop(key)
-
-        # Check for remaining junk in the request data.
-        if request.data.keys():
-            raise ParseError()
-
-        params["has_read"] = True
-
-        return params
 
 
 class HostTypeList(HubuumList):

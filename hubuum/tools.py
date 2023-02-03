@@ -6,15 +6,15 @@ from rest_framework.exceptions import NotFound
 from hubuum.models import Namespace, Permission, User
 
 
-def get_user(user_identifier, throw_exception=True):
+def get_user(user_identifier, raise_exception=True):
     """Try to find a user based on the identifier.
 
     Searches in User.lookup_fields
     """
-    return get_object(User, user_identifier, throw_exception=throw_exception)
+    return get_object(User, user_identifier, raise_exception=raise_exception)
 
 
-def get_group(group_identifier, throw_exception=True):
+def get_group(group_identifier, raise_exception=True):
     """Try to find a group based on the identifier.
 
     param: group_identifier
@@ -27,11 +27,11 @@ def get_group(group_identifier, throw_exception=True):
         Group,
         group_identifier,
         lookup_fields=["id", "name"],
-        throw_exception=throw_exception,
+        raise_exception=raise_exception,
     )
 
 
-def get_permission(namespace: Namespace, group: Group, throw_exception=True):
+def get_permission(namespace: Namespace, group: Group, raise_exception=True):
     """Try to find a permission object for the (namespace, group) touple.
 
     param: namespace (Namespace instance)
@@ -45,12 +45,12 @@ def get_permission(namespace: Namespace, group: Group, throw_exception=True):
         obj = Permission.objects.get(namespace=namespace, group=group)
         return obj
     except Permission.DoesNotExist as exc:
-        if throw_exception:
+        if raise_exception:
             raise NotFound() from exc
         return None
 
 
-def get_object(cls, lookup_value, lookup_fields=None, throw_exception=True):
+def get_object(cls, lookup_value, lookup_fields=None, raise_exception=True):
     """Get a object from a class.
 
     A generic way to find objects in a model.
@@ -81,7 +81,7 @@ def get_object(cls, lookup_value, lookup_fields=None, throw_exception=True):
         except Exception:  # nosec pylint: disable=broad-except
             pass
 
-    if throw_exception:
+    if raise_exception:
         raise NotFound()
 
     return None

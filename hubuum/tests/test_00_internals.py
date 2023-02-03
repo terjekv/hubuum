@@ -33,6 +33,6 @@ class InternalsTestCase(HubuumModelTestCase):
     def test_get_object(self):
         """Test the get_object interface from tools."""
         assert isinstance(get_object(User, "test"), User) is True  # nosec
-        assert get_object(User, "doesnotexist", throw_exception=False) is None  # nosec
+        assert get_object(User, "doesnotexist", raise_exception=False) is None  # nosec
         with pytest.raises(NotFound):
             assert get_object(User, "doesnotexist")  # nosec

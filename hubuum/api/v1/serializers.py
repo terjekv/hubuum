@@ -34,8 +34,10 @@ class ErrorOnBadFieldMixin:  # pylint: disable=too-few-public-methods
         """Run the validation of the input."""
         if not isinstance(data, dict):
             raise ValidationError(
-                code="not_a_dict", detail={"typeerror": "Expected a dict."}
+                code="expected_dict",
+                detail={"typeerror": "API expected a dictionary."},
             )
+
         provided_keys = data.keys()
         items = self.fields.items()
 
