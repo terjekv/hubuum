@@ -2,18 +2,13 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.http import (
-    Http404,
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseNotFound,
-    HttpResponseServerError,
-)
+from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import MethodNotAllowed, NotFound, ParseError
 from rest_framework.schemas.openapi import AutoSchema
 from rest_framework.views import Response
 
+from hubuum.exceptions import Conflict
 from hubuum.filters import HubuumObjectPermissionsFilter
 from hubuum.models import (
     Host,
@@ -33,7 +28,7 @@ from hubuum.permissions import (
     NameSpaceOrReadOnly,
     fully_qualified_operations,
 )
-from hubuum.tools import get_group, get_user
+from hubuum.tools import get_group, get_permission, get_user
 
 from .serializers import (
     GroupSerializer,
@@ -93,7 +88,7 @@ class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
                 pass
 
         if obj is None:
-            raise Http404()
+            raise NotFound()
 
         return obj
 
@@ -191,7 +186,7 @@ class GroupMembersUser(
             if user.groups.filter(id=group.id).exists():
                 return Response(UserSerializer(user).data)
 
-        return HttpResponseNotFound()
+        raise NotFound()
 
     def patch(self, request, *args, **kwargs):
         """Disallow patch."""
@@ -200,32 +195,28 @@ class GroupMembersUser(
     def post(self, request, *args, **kwargs):
         """Add a user to a group."""
         group = self.get_object()
-
         user = get_user(kwargs["userid"])
-        if user:
-            if user.groups.filter(id=group.id).exists():
-                return Response(
-                    f"User {user.id} is already a member of group {group.id}",
-                    status=status.HTTP_200_OK,
-                )
 
-            user.groups.add(group)
-            user.save()
-            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
-        return HttpResponseNotFound()
+        if user.groups.filter(id=group.id).exists():
+            return Response(
+                f"User {user.id} is already a member of group {group.id}",
+                status=status.HTTP_200_OK,
+            )
+
+        user.groups.add(group)
+        user.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
     def delete(self, request, *args, **kwargs):
         """Delete a user from a group."""
         group = self.get_object()
         user = get_user(kwargs["userid"])
 
-        if user:
-            if user.groups.filter(id=group.id).exists():
-                user.groups.remove(group)
-                user.save()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        if user.groups.filter(id=group.id).exists():
+            user.groups.remove(group)
+            user.save()
 
-        return HttpResponseNotFound()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PermissionList(HubuumList):
@@ -308,7 +299,7 @@ class NamespaceMembersGroup(
 
     permission_classes = (NameSpaceOrReadOnly,)
     lookup_fields = ("id", "name")
-    serializer_class = GroupSerializer
+    serializer_class = PermissionSerializer
     queryset = Namespace.objects.all()
     schema = AutoSchema(
         tags=["LISTVIEW"],
@@ -319,21 +310,22 @@ class NamespaceMembersGroup(
     def get(self, request, *args, **kwargs):
         """Get a group that has access to a namespace."""
         namespace = self.get_object()
-
         group = get_group(kwargs["groupid"])
+        permission = get_permission(namespace, group)
 
-        if not group:
-            return HttpResponse("Group not found.", status=status.HTTP_404_NOT_FOUND)
-
-        if not Permission.objects.filter(namespace=namespace, group=group).exists():
-            return HttpResponseNotFound()
-
-        return Response(GroupSerializer(group).data)
+        return Response(PermissionSerializer(permission).data)
 
     # TODO: Should be used to update a groups permissions for the namespace.
     def patch(self, request, *args, **kwargs):
-        """Disallow patch."""
-        raise MethodNotAllowed(request.method)
+        """Patch the permissions of an existing group for a namespace."""
+        namespace = self.get_object()
+        group = get_group(kwargs["groupid"])
+        instance = get_permission(namespace, group)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
 
     def post(self, request, *args, **kwargs):
         """Put associates a group with a namespace.
@@ -350,43 +342,21 @@ class NamespaceMembersGroup(
         Transparently creates a permission object.
         """
         namespace = self.get_object()
-
         group = get_group(kwargs["groupid"])
-        if not group:
-            return HttpResponse("Group not found.", status=status.HTTP_404_NOT_FOUND)
+        instance = get_permission(namespace, group, throw_exception=False)
 
         if set(request.data.keys()).isdisjoint(fully_qualified_operations()):
-            return HttpResponseBadRequest(
-                f"Missing at least one of '{fully_qualified_operations()}'"
+            raise ParseError(
+                detail=f"Missing at least one of '{fully_qualified_operations()}'"
             )
 
-        # Check if the object (namespace, group) already exists.
-        # If so, they need to patch, not put.
-        if Permission.objects.filter(namespace=namespace, group=group).exists():
-            return HttpResponse(
-                reason=f"{group.name} already has permissions on {namespace.name}",
-                status=status.HTTP_409_CONFLICT,
-            )
+        params = self._create_params(request, fully_qualified_operations())
 
-        # We now have some params, so we generated a dict of options to set, and then
-        # forcibly add has_read=True to ensure that also gets set.
-        params = {}
-        for key in fully_qualified_operations():
-            if key in request.data:
-                params[key] = bool(request.data[key])
-                request.data.pop(key)
+        if instance:
+            raise Conflict()
 
-        # Check for remaining junk in the request data.
-        if request.data.keys():
-            return HttpResponseBadRequest()
-
-        params["has_read"] = True
-
-        try:
-            Permission.objects.create(namespace=namespace, group=group, **params)
-            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except Exception:  # pylint: disable=broad-except
-            return HttpResponseServerError()
+        Permission.objects.create(namespace=namespace, group=group, **params)
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
 
     def delete(self, request, *args, **kwargs):
         """Delete disassociates a group with a namespace.
@@ -395,14 +365,26 @@ class NamespaceMembersGroup(
         """
         namespace = self.get_object()
         group = get_group(kwargs["groupid"])
-        if not group:
-            return HttpResponse("Group not found.", status=status.HTTP_404_NOT_FOUND)
+        permission = get_permission(namespace, group)
 
-        try:
-            Permission.objects.get(namespace=namespace, group=group).delete()
-            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except Exception:  # pylint: disable=broad-except
-            return HttpResponseServerError()
+        permission.delete()
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+
+    def _create_params(self, request, keys):
+        """Parse the permissions set."""
+        params = {}
+        for key in keys:
+            if key in request.data:
+                params[key] = bool(request.data[key])
+                request.data.pop(key)
+
+        # Check for remaining junk in the request data.
+        if request.data.keys():
+            raise ParseError()
+
+        params["has_read"] = True
+
+        return params
 
 
 class HostTypeList(HubuumList):

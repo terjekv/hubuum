@@ -50,9 +50,10 @@ class User(AbstractUser):
         If the namespace isn't scoped (contains no dots), return False.
         Only admin users can create root namespaces.
         """
-        scope = namespace.split(".")
-        if len(scope) == 0:
-            return False
+        #        scope = namespace.split(".")
+        namespace.split(".")
+        #        if len(scope) == 0:
+        #            return False
 
         return False
 

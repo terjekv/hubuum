@@ -236,12 +236,6 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
             {"has_read": True},
         )
 
-        # Patch isn't implemented
-        self.assert_patch_and_405(
-            "/namespaces/namespaceone/groups/grouptwo",
-            {"has_namespace": False, "has_create": True},
-        )
-
         self.assert_get_and_404(
             "/namespaces/namespaceone/groups/nosuchgroup",
         )
@@ -286,3 +280,27 @@ class APIPreliminaryPermissionTestCase(HubuumAPITestCase):
         self.assert_get_elements("/permissions/", 1)
         self.assert_delete("/namespaces/namespaceone")
         self.assert_get_elements("/permissions/", 0)
+
+    def test_group_namespace_endpoint_patch(self):
+        """Test patching combined namespace and group endpoints."""
+        self.client = self.get_staff_client()
+        self.assert_post("/namespaces/", {"name": "namespaceone"})
+        self.assert_post("/groups/", {"name": "groupone"})
+
+        self.assert_post_and_204(
+            "/namespaces/namespaceone/groups/groupone",
+            {"has_read": True},
+        )
+
+        response = self.assert_get("/namespaces/namespaceone/groups/groupone")
+        self.assertEqual(response.data["has_read"], True)
+        self.assertEqual(response.data["has_create"], False)
+
+        self.assert_patch_and_204(
+            "/namespaces/namespaceone/groups/groupone",
+            {"has_create": True},
+        )
+
+        response = self.assert_get("/namespaces/namespaceone/groups/groupone")
+        self.assertEqual(response.data["has_read"], True)
+        self.assertEqual(response.data["has_create"], True)
