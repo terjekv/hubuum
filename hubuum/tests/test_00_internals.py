@@ -26,9 +26,13 @@ class InternalsTestCase(HubuumModelTestCase):
         with pytest.raises(MissingParam):
             self._test_has_identical_values(dictionary={})
 
+    # Using assert triggers bandit:
+    # https://bandit.readthedocs.io/en/latest/plugins/b101_assert_used.html
+    # However, producing a consistent configuration across workflows and
+    # external tools is proving annoying, so we mark out the lines directly.
     def test_get_object(self):
         """Test the get_object interface from tools."""
-        assert isinstance(get_object(User, "test"), User) is True
-        assert get_object(User, "doesnotexist", throw_exception=False) is None
+        assert isinstance(get_object(User, "test"), User) is True  # nosec
+        assert get_object(User, "doesnotexist", throw_exception=False) is None  # nosec
         with pytest.raises(NotFound):
-            assert get_object(User, "doesnotexist")
+            assert get_object(User, "doesnotexist")  # nosec

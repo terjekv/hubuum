@@ -39,9 +39,8 @@ def get_permission(namespace: Namespace, group: Group, throw_exception=True):
 
     returns: permission object
 
-    raises: NotFound if no object found
+    raises: NotFound if no object found.
     """
-
     try:
         obj = Permission.objects.get(namespace=namespace, group=group)
         return obj
