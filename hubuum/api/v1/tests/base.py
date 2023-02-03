@@ -272,13 +272,13 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         return self._assert_post_and_status(path, 409, *args, **kwargs)
 
 
-def clean_and_save(entity):
-    """Perform a full clean and a save on the object.
-
-    https://docs.djangoproject.com/en/4.1/ref/models/instances/#django.db.models.Model.full_clean
-    """
-    entity.full_clean()
-    entity.save()
+# def clean_and_save(entity):
+#    """Perform a full clean and a save on the object.
+#
+#    https://docs.djangoproject.com/en/4.1/ref/models/instances/#django.db.models.Model.full_clean
+#    """
+#    entity.full_clean()
+#    entity.save()
 
 
 # def create_host(name="testhost", ownergroup=None):
