@@ -73,10 +73,6 @@ class User(AbstractUser):
         perm: see permissions.py
         obj: Hubuum Object
         """
-        #        print("Self: <" + str(self) + ">")
-        #        print("Perm: <" + str(perm) + ">")
-        #        print("Obj: <" + str(obj) + "> (" + str(obj.__class__) + ")")
-
         field = None
 
         try:
@@ -86,9 +82,6 @@ class User(AbstractUser):
                 f"Unknown permission '{perm}' passed to has_perm"
             ) from exc
 
-        if not (operation and model):
-            raise MissingParam(f"Unknown expression '{perm}' passed to has_perm")
-
         if operation_exists(operation) and model_exists(model):
             field = "has_" + operation
         else:
@@ -96,6 +89,7 @@ class User(AbstractUser):
                 f"Unknown operation or model '{operation} / {model}' passed to has_perm"
             )
 
+        # We should always get an object to test against.
         if obj:
             return Permission.objects.filter(
                 namespace=obj.namespace, **{field: True}, group__in=self.groups.all()

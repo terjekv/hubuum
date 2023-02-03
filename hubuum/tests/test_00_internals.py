@@ -36,3 +36,13 @@ class InternalsTestCase(HubuumModelTestCase):
         assert get_object(User, "doesnotexist", raise_exception=False) is None  # nosec
         with pytest.raises(NotFound):
             assert get_object(User, "doesnotexist")  # nosec
+
+    def test_has_perm(self):
+        """Test the internals of has_perm."""
+        # These should never happen, but are handled.
+        test = User.objects.get(username="test")
+        assert test.has_perm("hubuum.read_namespace", None) is False
+        with pytest.raises(MissingParam):
+            test.has_perm("nosuchperm", None)
+        with pytest.raises(MissingParam):
+            test.has_perm("hubuum.x_y", None)
