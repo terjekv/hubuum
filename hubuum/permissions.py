@@ -1,4 +1,5 @@
 """Permissions module for hubuum."""
+# from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import (
     SAFE_METHODS,
     DjangoObjectPermissions,
@@ -40,6 +41,17 @@ def is_super_or_admin(user):
     return user.is_staff or user.is_superuser
 
 
+class IsSuperOrAdmin(IsAuthenticated):
+    """Permit super or admin users."""
+
+    def has_permission(self, request, view):
+        """Check if we're super/admin otherwise authenticated readonly."""
+        if is_super_or_admin(request.user):
+            return True
+
+        return False
+
+
 class IsAuthenticatedAndReadOnly(IsAuthenticated):
     """Allow read-only access if authenticated."""
 
@@ -63,21 +75,23 @@ class IsSuperOrAdminOrReadOnly(IsAuthenticatedAndReadOnly):
 # A thing here. Everyone can read all namespaces. For multi-tenant installations we probably need:
 # 1. Tenant specific admin groups
 # 2. Limit visibility to a tenant's namespace / scope.
-class NameSpaceOrReadOnly(IsSuperOrAdminOrReadOnly):
+class NameSpace(IsSuperOrAdmin):
     """
     Namespace access.
 
     Write access:
         - super or admin users
-        - users with has_namespace for the namespace set
+        - users in groups with has_namespace for the namespace set
 
     Read access:
-        - Everyone
+        - super or admin users
+        - users in groups with has_read for the namespace set
     """
 
     def has_permission(self, request, view):
-        """Check if R/O or admin by delegation, then check user, otherwise false."""
+        """Check if superuser or admin by delegation, then check user, otherwise false."""
         if super().has_permission(request, view):
             return True
 
-        return request.user.can_modify_namespaces(request.data["name"])
+        # Need to find the object requested and check if it is in a namespace the user can read.
+        return False

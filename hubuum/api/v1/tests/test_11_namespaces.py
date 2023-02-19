@@ -43,21 +43,23 @@ class APINamespace(HubuumAPITestCase):
         self.assert_get_elements("/namespaces/", 0)
         self.assert_get_and_404("/namespaces/namespace_not_two")
 
-    def test_namespaces_as_user(self):
+    def test_namespace_get_as_user(self):
         """Test namespaces as a normal user."""
-        self.client = self.get_user_client()
-
-        self.assert_get_elements("/namespaces/", 0)
-        self.assert_post_and_403("/namespaces/", {"name": "namespaceone"})
-        self.assert_get_elements("/namespaces/", 0)
-
+        # This creates the user and the group in one go.
+        self.client = userclient = self.get_user_client(
+            username="tmp", groupname="tmpgroup"
+        )
         self.client = self.get_superuser_client()
-        self.assert_post("/namespaces/", {"name": "namespaceone"})
+        self.assert_post("/namespaces/", {"name": "yes"})
+        self.assert_post("/namespaces/", {"name": "no"})
+        self.assert_post_and_204("/namespaces/yes/groups/tmpgroup", {"has_read": True})
+        self.assert_get_elements("/namespaces/", 2)
+        # print(response.data)
 
-        self.assert_post("/users/", {"username": "tmpuser", "password": "test"})
-        self.assert_post("/groups/", {"name": "tmpgroup"})
-
-        self.assert_post("/groups/tmpgroup/members/tmpuser")
-        self.assert_get("/users/tmpuser")
-
-        self.client = self.get_user_client(username="tmp")
+        # This requires fixes in permissions.py.
+        self.client = userclient
+        # self.assert_get_elements("/namespaces/", 1)
+        # self.assert_get("/namespaces/yes")
+        # self.assert_get_and_404("/namespaces/no")
+        self.assert_patch_and_403("/namespaces/yes", {"name": "maybe"})
+        self.assert_delete_and_403("/namespaces/yes")

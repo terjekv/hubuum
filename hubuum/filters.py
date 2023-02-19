@@ -12,6 +12,7 @@ class HubuumObjectPermissionsFilter(filters.BaseFilterBackend):
 
     def filter_queryset(self, request, queryset, view):
         """Perform the filtering."""
+        # print("Filtering")
         user = request.user
         # model = queryset.model._meta.model_name
         #        permission = self.perm_format % {
@@ -26,10 +27,16 @@ class HubuumObjectPermissionsFilter(filters.BaseFilterBackend):
         if user.is_admin() or model_is_open(model_name):
             return queryset
 
-        res = Permission.objects.filter(has_read=True, group__in=user.groups.all())
+        res = Permission.objects.filter(
+            has_read=True, group__in=user.groups.all()
+        ).values_list("namespace", flat=True)
         if not res:
             return []
-        return queryset.filter(namespace__in=res.namespace)
+        # print(res)
+        # print(queryset)
+        filtered = queryset.filter(pk__in=res)
+        # print(filtered)
+        return filtered
 
 
 #        return get_objects_for_user(user, permission, queryset, **self.shortcut_kwargs)

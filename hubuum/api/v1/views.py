@@ -25,7 +25,7 @@ from hubuum.models import (
 )
 from hubuum.permissions import (
     IsSuperOrAdminOrReadOnly,
-    NameSpaceOrReadOnly,
+    NameSpace,
     fully_qualified_operations,
 )
 from hubuum.tools import get_group, get_permission, get_user
@@ -253,7 +253,12 @@ class NamespaceList(HubuumList):
 
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
-    permission_classes = (NameSpaceOrReadOnly,)
+    permission_classes = (NameSpace,)
+
+
+#    def get(self, request, *args, **kwargs):
+#        """Debugging."""
+#        return super().get(request, *args, **kwargs)
 
 
 class NamespaceDetail(HubuumDetail):
@@ -262,7 +267,7 @@ class NamespaceDetail(HubuumDetail):
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
     lookup_fields = ("id", "name")
-    permission_classes = (NameSpaceOrReadOnly,)
+    permission_classes = (NameSpace,)
 
 
 class NamespaceMembers(
@@ -271,7 +276,7 @@ class NamespaceMembers(
 ):
     """List groups that can access a namespace."""
 
-    permission_classes = (NameSpaceOrReadOnly,)
+    permission_classes = (NameSpace,)
     lookup_fields = ("id", "name")
     serializer_class = GroupSerializer
     queryset = Namespace.objects.all()
@@ -297,7 +302,7 @@ class NamespaceMembersGroup(
 ):
     """Modify groups that can access a namespace."""
 
-    permission_classes = (NameSpaceOrReadOnly,)
+    permission_classes = (NameSpace,)
     lookup_fields = ("id", "name")
     serializer_class = PermissionSerializer
     queryset = Namespace.objects.all()
