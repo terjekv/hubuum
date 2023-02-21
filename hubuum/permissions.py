@@ -31,9 +31,12 @@ def fully_qualified_operations():
     return ["has_" + s for s in operations()]
 
 
-def operation_exists(permission):
+def operation_exists(permission, fully_qualified=False):
     """Check if a permission label is valid."""
-    return permission in operations()
+    if fully_qualified:
+        return permission in fully_qualified_operations()
+    else:
+        return permission in operations()
 
 
 def is_super_or_admin(user):
@@ -118,8 +121,11 @@ class NameSpace(IsSuperOrAdminOrReadOnly):
         # never get called...
         # Instead we have to check for has_create or has_namespace depending on context.
         # For now though, users can't create anything...
+        # The question here is how we find the primary key that is being created so
+        # we can pass that to can_modify_namespace()...
         if request.method == "POST":
             return False
+        #            return request.user.can_modify_namespace()
 
         return True
 

@@ -5,6 +5,7 @@ import re
 from django.apps import apps
 from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from rest_framework.exceptions import NotFound
 
 from hubuum.exceptions import MissingParam
 from hubuum.permissions import operation_exists
@@ -12,7 +13,12 @@ from hubuum.permissions import operation_exists
 
 def model_exists(model):
     """Check if a given model exists by name."""
-    return apps.get_model("hubuum", model)
+    try:
+        apps.get_model("hubuum", model)
+    except LookupError:
+        return False
+
+    return True
 
 
 def model_is_open(model):
@@ -28,7 +34,9 @@ def models_that_are_open():
 class User(AbstractUser):
     """Extension to the default User class."""
 
-    permissions_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
+    model_permissions_pattern = re.compile(
+        r"^hubuum.(create|read|update|delete|namespace)_(\w+)$"
+    )
     lookup_fields = ["id", "username", "email"]
 
     _group_list = None
@@ -51,27 +59,35 @@ class User(AbstractUser):
     def namespaced_can(self, perm, namespace):
         """Check to see if the user can perform perm for namespace.
 
-        param: perm (permission string, 'has_[read|create|update|delete|namespace])
+        param: perm (permission string, 'has_[create|read|update|delete|namespace])
         param: namespace (namespace object)
         return True|False
         """
+        if not operation_exists(perm, fully_qualified=True):
+            raise MissingParam(f"Unknown permission '{perm}' passed to namespaced_can.")
+
         # We need to check if the user is a member of a group
         # that has the given permission the namespace.
         groups = namespace.groups_that_can(perm)
         return self.is_member_of(groups)
 
-    def can_modify_namespaces(self, namespace):
+    def can_modify_namespace(self, namespace):
         """Check if the user has namespace permissions for the given namespace.
 
         If the namespace isn't scoped (contains no dots), return False.
+        Otherwise, check if we can create the last element.
         Only admin users can create root namespaces.
         """
-        #        scope = namespace.split(".")
-        namespace.split(".")
-        #        if len(scope) == 0:
-        #            return False
+        scope = namespace.split(".")
+        if len(scope) == 1:
+            return False
 
-        return False
+        try:
+            sub_namespace = Namespace.objects.get(name=scope[-1])
+        except Namespace.DoesNotExist:
+            raise NotFound
+
+        return self.namespaced_can("has_namespace", sub_namespace)
 
     #        try:
     #            parent = Namespace.objects.get(name=scope[-1])
@@ -84,7 +100,7 @@ class User(AbstractUser):
 
     def has_perm(self, perm: str, obj: object = None) -> bool:
         """
-        Permissions check for an object.
+        Model (?) permissions check for an object.
 
         perm: see permissions.py
         obj: Hubuum Object
@@ -92,7 +108,7 @@ class User(AbstractUser):
         field = None
 
         try:
-            operation, model = re.match(User.permissions_pattern, perm).groups()
+            operation, model = re.match(User.model_permissions_pattern, perm).groups()
         except AttributeError as exc:
             raise MissingParam(
                 f"Unknown permission '{perm}' passed to has_perm"

@@ -83,3 +83,27 @@ class APINamespace(HubuumAPITestCase):
         self.client = userclient
         self.assert_patch("/namespaces/yes", {"name": "maybe"})
         self.assert_get("/namespaces/maybe")
+
+    def test_namespace_has_namespace_as_user(self):
+        """Test has_namespace on namespaces as a normal user."""
+        self.client = userclient = self.get_user_client(
+            username="tmp", groupname="tmpgroup"
+        )
+        self.client = self.get_superuser_client()
+        self.assert_post("/namespaces/", {"name": "yes"})
+
+        self.client = userclient
+        # Should be 405?
+        self.assert_post_and_403("/namespaces/yes", {"name": "subnamespace"})
+
+        self.client = self.get_superuser_client()
+        self.assert_post_and_204(
+            "/namespaces/yes/groups/tmpgroup", {"has_namespace": True}
+        )
+
+        self.client = userclient
+        # Should be 405?
+        self.assert_post_and_403("/namespaces/yes", {"name": "subnamespace"})
+        # Not implemented, see permissions.py -> has_permission.
+        # self.assert_post("/namespaces/yes.subnamespace")
+        # self.assert_get("/namespaces/yes.subnamespace")

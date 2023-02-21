@@ -258,11 +258,6 @@ class NamespaceList(HubuumList):
     permission_classes = (NameSpace,)
 
 
-#    def get(self, request, *args, **kwargs):
-#        """Debugging."""
-#        return super().get(request, *args, **kwargs)
-
-
 class NamespaceDetail(HubuumDetail):
     """Get, Patch, or Destroy a namespace."""
 

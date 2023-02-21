@@ -3,7 +3,7 @@ import pytest
 from rest_framework.exceptions import NotFound
 
 from hubuum.exceptions import MissingParam
-from hubuum.models import User
+from hubuum.models import Namespace, User
 from hubuum.tools import get_object
 
 from .base import HubuumModelTestCase
@@ -46,3 +46,16 @@ class InternalsTestCase(HubuumModelTestCase):
             test.has_perm("nosuchperm", None)
         with pytest.raises(MissingParam):
             test.has_perm("hubuum.x_y", None)
+        with pytest.raises(MissingParam):
+            test.has_perm("hubuum.nosuchperm_host", None)
+        with pytest.raises(MissingParam):
+            test.has_perm("hubuum.read_nosuchmodel", None)
+        with pytest.raises(MissingParam):
+            test.namespaced_can("nosuchperm", None)
+
+        Namespace.objects.get_or_create(name="root")
+        assert test.can_modify_namespace("root") is False  # nosec
+        with pytest.raises(NotFound):
+            test.can_modify_namespace("root.no")
+        with pytest.raises(NotFound):
+            test.can_modify_namespace("root.no.reallyno")
