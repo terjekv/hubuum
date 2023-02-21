@@ -35,8 +35,8 @@ def operation_exists(permission, fully_qualified=False):
     """Check if a permission label is valid."""
     if fully_qualified:
         return permission in fully_qualified_operations()
-    else:
-        return permission in operations()
+
+    return permission in operations()
 
 
 def is_super_or_admin(user):
