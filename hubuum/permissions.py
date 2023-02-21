@@ -45,7 +45,14 @@ class IsSuperOrAdmin(IsAuthenticated):
     """Permit super or admin users."""
 
     def has_permission(self, request, view):
-        """Check if we're super/admin otherwise authenticated readonly."""
+        """Check if we're super/admin otherwise false."""
+        if is_super_or_admin(request.user):
+            return True
+
+        return False
+
+    def has_object_permission(self, request, view, obj):
+        """Check if we're super/admin otherwise false."""
         if is_super_or_admin(request.user):
             return True
 
@@ -61,6 +68,12 @@ class IsAuthenticatedAndReadOnly(IsAuthenticated):
             return False
         return request.method in SAFE_METHODS
 
+    def has_object_permission(self, request, view, obj):
+        """Check super (IsAuthenticated) and read-only methods (SAFE_METHODS)."""
+        if not super().has_object_permission(request, view, obj):
+            return False
+        return request.method in SAFE_METHODS
+
 
 class IsSuperOrAdminOrReadOnly(IsAuthenticatedAndReadOnly):
     """Permit super or admin users, else read only."""
@@ -71,11 +84,17 @@ class IsSuperOrAdminOrReadOnly(IsAuthenticatedAndReadOnly):
             return True
         return super().has_permission(request, view)
 
+    def has_object_permission(self, request, view, obj):
+        """Check if we're super/admin otherwise authenticated readonly."""
+        if is_super_or_admin(request.user):
+            return True
+        return super().has_object_permission(request, view, obj)
+
 
 # A thing here. Everyone can read all namespaces. For multi-tenant installations we probably need:
 # 1. Tenant specific admin groups
 # 2. Limit visibility to a tenant's namespace / scope.
-class NameSpace(IsSuperOrAdmin):
+class NameSpace(IsSuperOrAdminOrReadOnly):
     """
     Namespace access.
 
@@ -90,8 +109,35 @@ class NameSpace(IsSuperOrAdmin):
 
     def has_permission(self, request, view):
         """Check if superuser or admin by delegation, then check user, otherwise false."""
+        # First check if we are superuser or asking for read-only (listing), if so, return true.
         if super().has_permission(request, view):
             return True
 
-        # Need to find the object requested and check if it is in a namespace the user can read.
-        return False
+        # POST needs special treatment as we don't have an object to work on.
+        # The lack of an object means we can't delegate to has_object_permission, as it will
+        # never get called...
+        # Instead we have to check for has_create or has_namespace depending on context.
+        # For now though, users can't create anything...
+        if request.method == "POST":
+            return False
+
+        return True
+
+    def has_object_permission(self, request, view, obj):
+        """Check for object-specific access."""
+        # We can't user the super method, as it allows read-only for everyone,
+        # which we don't want.
+        if is_super_or_admin(request.user):
+            return True
+
+        perms_map = {
+            "GET": "has_read",
+            "OPTIONS": "has_read",
+            "HEAD": "has_read",
+            "POST": "has_create",
+            "PUT": "has_update",
+            "PATCH": "has_update",
+            "DELETE": "has_delete",
+        }
+
+        return request.user.namespaced_can(perms_map[request.method], obj)

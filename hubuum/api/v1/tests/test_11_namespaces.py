@@ -44,7 +44,7 @@ class APINamespace(HubuumAPITestCase):
         self.assert_get_and_404("/namespaces/namespace_not_two")
 
     def test_namespace_get_as_user(self):
-        """Test namespaces as a normal user."""
+        """Test get on namespaces as a normal user."""
         # This creates the user and the group in one go.
         self.client = userclient = self.get_user_client(
             username="tmp", groupname="tmpgroup"
@@ -54,12 +54,32 @@ class APINamespace(HubuumAPITestCase):
         self.assert_post("/namespaces/", {"name": "no"})
         self.assert_post_and_204("/namespaces/yes/groups/tmpgroup", {"has_read": True})
         self.assert_get_elements("/namespaces/", 2)
-        # print(response.data)
 
-        # This requires fixes in permissions.py.
         self.client = userclient
-        # self.assert_get_elements("/namespaces/", 1)
-        # self.assert_get("/namespaces/yes")
-        # self.assert_get_and_404("/namespaces/no")
+        self.assert_get_elements("/namespaces/", 1)
+        self.assert_get("/namespaces/yes")
+        self.assert_get_and_403("/namespaces/no")
+        self.assert_get_and_404("/namespaces/doesnotexist")
         self.assert_patch_and_403("/namespaces/yes", {"name": "maybe"})
         self.assert_delete_and_403("/namespaces/yes")
+
+    def test_namespace_patch_as_user(self):
+        """Test patch on namespaces as a normal user."""
+        # This creates the user and the group in one go.
+        self.client = userclient = self.get_user_client(
+            username="tmp", groupname="tmpgroup"
+        )
+        self.client = self.get_superuser_client()
+        self.assert_post("/namespaces/", {"name": "yes"})
+
+        self.client = userclient
+        self.assert_patch_and_403("/namespaces/yes", {"name": "maybe"})
+
+        self.client = self.get_superuser_client()
+        self.assert_post_and_204(
+            "/namespaces/yes/groups/tmpgroup", {"has_update": True}
+        )
+
+        self.client = userclient
+        self.assert_patch("/namespaces/yes", {"name": "maybe"})
+        self.assert_get("/namespaces/maybe")

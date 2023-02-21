@@ -90,6 +90,8 @@ class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
         if obj is None:
             raise NotFound()
 
+        # As we overload get_object, we need to manually check permissions.
+        self.check_object_permissions(self.request, obj)
         return obj
 
 

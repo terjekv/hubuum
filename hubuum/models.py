@@ -3,7 +3,7 @@
 import re
 
 from django.apps import apps
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
 
 from hubuum.exceptions import MissingParam
@@ -43,6 +43,22 @@ class User(AbstractUser):
         if self._group_list is None:
             self._group_list = list(self.groups.values_list("name", flat=True))
         return self._group_list
+
+    def is_member_of(self, groups):
+        """Check to see if a user is a member of any of the groups in the list."""
+        return [i for i in groups if i in self.groups.all()]
+
+    def namespaced_can(self, perm, namespace):
+        """Check to see if the user can perform perm for namespace.
+
+        param: perm (permission string, 'has_[read|create|update|delete|namespace])
+        param: namespace (namespace object)
+        return True|False
+        """
+        # We need to check if the user is a member of a group
+        # that has the given permission the namespace.
+        groups = namespace.groups_that_can(perm)
+        return self.is_member_of(groups)
 
     def can_modify_namespaces(self, namespace):
         """Check if the user has namespace permissions for the given namespace.
@@ -138,6 +154,18 @@ class Namespace(HubuumModel):
 
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
+
+    def groups_that_can(self, perm):
+        """Fetch groups that can perform a specific permission.
+
+        param: perm (permission string, 'has_[read|create|update|delete|namespace])
+        return [group objects] (may be empty)
+        """
+        qs = Permission.objects.filter(namespace=self.id, **{perm: True}).values(
+            "group"
+        )
+        groups = Group.objects.filter(id__in=qs)
+        return groups
 
 
 class Permission(HubuumModel):
