@@ -157,6 +157,10 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         """Delete and assert status as 204."""
         return self._assert_delete_and_status(path, 204, **kwargs)
 
+    def assert_delete_and_401(self, path, **kwargs):
+        """Delete and assert status as 401."""
+        return self._assert_delete_and_status(path, 401, **kwargs)
+
     def assert_delete_and_403(self, path, **kwargs):
         """Delete and assert status as 403."""
         return self._assert_delete_and_status(path, 403, **kwargs)
@@ -218,6 +222,10 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
     def assert_patch_and_400(self, path, *args, **kwargs):
         """Patch and assert status as 400."""
         return self._assert_patch_and_status(path, 400, *args, **kwargs)
+
+    def assert_patch_and_401(self, path, *args, **kwargs):
+        """Patch and assert status as 401."""
+        return self._assert_patch_and_status(path, 401, *args, **kwargs)
 
     def assert_patch_and_403(self, path, *args, **kwargs):
         """Patch and assert status as 204."""

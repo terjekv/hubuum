@@ -4,7 +4,12 @@
 from django.contrib.auth.models import Group
 from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import MethodNotAllowed, NotFound, ParseError
+from rest_framework.exceptions import (
+    MethodNotAllowed,
+    NotAuthenticated,
+    NotFound,
+    ParseError,
+)
 from rest_framework.schemas.openapi import AutoSchema
 from rest_framework.views import Response
 
@@ -71,6 +76,9 @@ class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
         raises: 404 if not found.
         return: object
         """
+        if self.request.user.is_anonymous:
+            raise NotAuthenticated()
+
         queryset = self.get_queryset()
         obj = None
         value = self.kwargs["val"]

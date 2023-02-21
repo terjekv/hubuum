@@ -69,6 +69,7 @@ class IsAuthenticatedAndReadOnly(IsAuthenticated):
         """Check super (IsAuthenticated) and read-only methods (SAFE_METHODS)."""
         if not super().has_permission(request, view):
             return False
+
         return request.method in SAFE_METHODS
 
     def has_object_permission(self, request, view, obj):
@@ -113,6 +114,9 @@ class NameSpace(IsSuperOrAdminOrReadOnly):
     def has_permission(self, request, view):
         """Check if superuser or admin by delegation, then check user, otherwise false."""
         # First check if we are superuser or asking for read-only (listing), if so, return true.
+        if request.user.is_anonymous:
+            return False
+
         if super().has_permission(request, view):
             return True
 
@@ -133,6 +137,9 @@ class NameSpace(IsSuperOrAdminOrReadOnly):
         """Check for object-specific access."""
         # We can't user the super method, as it allows read-only for everyone,
         # which we don't want.
+        if request.user.is_anonymous:
+            return False
+
         if is_super_or_admin(request.user):
             return True
 

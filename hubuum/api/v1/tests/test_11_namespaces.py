@@ -1,9 +1,24 @@
 """Test namespaces."""
+from rest_framework.test import APIClient
+
 from .base import HubuumAPITestCase
 
 
 class APINamespace(HubuumAPITestCase):
     """Test namespaces."""
+
+    def test_namespace_access_as_noone(self):
+        """Test access to namespaces as a noone."""
+        self.client = self.get_superuser_client()
+        self.assert_post("/namespaces/", {"name": "yes"})
+
+        self.client = APIClient()
+        self.assert_post_and_401("/namespaces/", {"name": "no"})
+        self.assert_patch_and_401("/namespaces/yes", {"name": "maybe"})
+        self.assert_get_and_401("/namespaces/yes")
+        self.assert_get_and_401("/namespaces/no")
+        self.assert_delete_and_401("/namespaces/yes")
+        self.assert_get_and_401("/namespaces/")
 
     def test_field_validation(self):
         """Test that we can't write to read-only fields."""
