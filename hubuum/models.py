@@ -84,8 +84,8 @@ class User(AbstractUser):
 
         try:
             sub_namespace = Namespace.objects.get(name=scope[-1])
-        except Namespace.DoesNotExist:
-            raise NotFound
+        except Namespace.DoesNotExist as exc:
+            raise NotFound from exc
 
         return self.namespaced_can("has_namespace", sub_namespace)
 
