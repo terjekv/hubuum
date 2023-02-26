@@ -108,8 +108,7 @@ class APINamespace(HubuumAPITestCase):
         self.assert_post("/namespaces/", {"name": "yes"})
 
         self.client = userclient
-        # Should be 405?
-        self.assert_post_and_403("/namespaces/yes", {"name": "subnamespace"})
+        self.assert_post_and_405("/namespaces/yes", {"name": "subnamespace"})
 
         self.client = self.get_superuser_client()
         self.assert_post_and_204(
@@ -117,8 +116,49 @@ class APINamespace(HubuumAPITestCase):
         )
 
         self.client = userclient
-        # Should be 405?
-        self.assert_post_and_403("/namespaces/yes", {"name": "subnamespace"})
+        self.assert_post_and_405("/namespaces/yes", {"name": "subnamespace"})
+        self.assert_post_and_405("/namespaces/yes", {"namespace": "subnamespace"})
         # Not implemented, see permissions.py -> has_permission.
-        # self.assert_post("/namespaces/yes.subnamespace")
-        # self.assert_get("/namespaces/yes.subnamespace")
+        self.assert_get("/namespaces/yes")
+        self.assert_post("/namespaces/", {"name": "yes.subnamespace"})
+
+        self.client = self.get_superuser_client()
+        self.assert_get("/namespaces/yes.subnamespace")
+
+        self.client = userclient
+        self.assert_get("/namespaces/yes.subnamespace")
+
+    def test_namespace_as_user_with_multiple_group_memberships(self):
+        """Test has_namespace as a normal user but with multiple group memberships."""
+        userclient = self.get_user_client(username="userone", groupname="groupone")
+        self.client = self.get_superuser_client()
+        self.assert_post("/namespaces/", {"name": "yes"})
+        groupone = self.assert_get("/groups/groupone")
+        grouptwo = self.assert_post("/groups/", {"name": "grouptwo"})
+        groupthree = self.assert_post("/groups/", {"name": "groupthree"})
+
+        self.assert_post_and_204(
+            "/namespaces/yes/groups/groupone", {"has_namespace": True}
+        )
+
+        self.assert_patch(
+            "/users/userone",
+            {
+                "groups": [groupone.data["id"], grouptwo.data["id"]],
+            },
+        )
+
+        self.client = userclient
+        self.add_user_to_groups(["groupone", "grouptwo"])
+        self.assert_get("/namespaces/yes")
+        # This fails as the user is a member of more than one group and none are offered.
+        self.assert_post_and_400("/namespaces/", {"name": "yes.subnamespace"})
+        # This fails as the user is not a member of groupthree.
+        self.assert_post_and_400(
+            "/namespaces/", {"name": "yes.subnamespace", "group": groupthree.data["id"]}
+        )
+        # This works.
+        self.assert_post(
+            "/namespaces/", {"name": "yes.subnamespace", "group": grouptwo.data["id"]}
+        )
+        self.assert_get("/namespaces/yes.subnamespace")

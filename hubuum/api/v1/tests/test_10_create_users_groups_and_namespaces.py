@@ -168,7 +168,9 @@ class APIPreliminaryNamespaceTestCase(HubuumAPITestCase):
         self.assert_post_and_403("/namespaces/", {"name": "namespaceone"})
 
     def test_user_create_scoped_namespace(self):
-        """Test users ability to create root namespaces."""
+        """Test users ability to create scoped namespaces."""
+        self.client = self.get_staff_client()
+        self.assert_post("/namespaces/", {"name": "namespaceone"})
         self.client = self.get_user_client()
         self.assert_post_and_403("/namespaces/", {"name": "namespaceone.mine"})
 

@@ -9,6 +9,7 @@ from rest_framework.exceptions import (
     NotAuthenticated,
     NotFound,
     ParseError,
+    ValidationError,
 )
 from rest_framework.schemas.openapi import AutoSchema
 from rest_framework.views import Response
@@ -264,6 +265,44 @@ class NamespaceList(HubuumList):
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
     permission_classes = (NameSpace,)
+    namespace_write_permission = "has_namespace"
+
+    def post(self, request, *args, **kwargs):
+        """Process creation of new namespaces."""
+        user = request.user
+        group = None
+        if "group" in request.data:
+            # We want to pop the group since it's not part of the model.
+            # As such, validation will fail if it present.
+            group = Group.objects.get(id=request.data.pop("group"))
+            if not user.is_member_of(group):
+                raise ValidationError(
+                    """The user is not a member of the group that was requested to have
+                    permissions for the created object."""
+                )
+        else:
+            if user.has_only_one_group():
+                group = user.groups.all().first()
+
+        if not user.is_admin() and group is None:
+            raise ValidationError(
+                """No group parameter provided, and no singular default available.
+                All user-owned namespace-enabled objects are required to have an initial group
+                with permissions to the object set upon creation."""
+            )
+
+        #        if not user.is_admin():
+        #            print(user.has_only_one_group())
+        #            print(user.groups.all())
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            new_namespace = serializer.save()
+
+        if group is not None:
+            new_namespace.grant_all(group)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class NamespaceDetail(HubuumDetail):
@@ -273,6 +312,8 @@ class NamespaceDetail(HubuumDetail):
     serializer_class = NamespaceSerializer
     lookup_fields = ("id", "name")
     permission_classes = (NameSpace,)
+    namespace_write_permission = "has_namespace"
+    namespace_post = False
 
 
 class NamespaceMembers(

@@ -8,7 +8,7 @@ from django.db import models
 from rest_framework.exceptions import NotFound
 
 from hubuum.exceptions import MissingParam
-from hubuum.permissions import operation_exists
+from hubuum.permissions import fully_qualified_operations, operation_exists
 
 
 def model_exists(model):
@@ -52,9 +52,21 @@ class User(AbstractUser):
             self._group_list = list(self.groups.values_list("name", flat=True))
         return self._group_list
 
-    def is_member_of(self, groups):
+    def group_count(self):
+        """Return the number of groups the user is a member of."""
+        return self.groups.count()
+
+    def has_only_one_group(self):
+        """Return true if the user is a member of only one group."""
+        return self.group_count() == 1
+
+    def is_member_of(self, group):
+        """Check if the user is a member of a specific group."""
+        return self.is_member_of_any([group])
+
+    def is_member_of_any(self, groups):
         """Check to see if a user is a member of any of the groups in the list."""
-        return [i for i in groups if i in self.groups.all()]
+        return bool([i for i in groups if i in self.groups.all()])
 
     def namespaced_can(self, perm, namespace):
         """Check to see if the user can perform perm for namespace.
@@ -69,25 +81,36 @@ class User(AbstractUser):
         # We need to check if the user is a member of a group
         # that has the given permission the namespace.
         groups = namespace.groups_that_can(perm)
-        return self.is_member_of(groups)
+        return self.is_member_of_any(groups)
 
-    def can_modify_namespace(self, namespace):
+    def has_namespace(
+        self,
+        namespace,
+        write_perm="has_namespace",
+    ):
         """Check if the user has namespace permissions for the given namespace.
 
-        If the namespace isn't scoped (contains no dots), return False.
-        Otherwise, check if we can create the last element.
-        Only admin users can create root namespaces.
+        Only admin users can create or populate root namespaces.
+
+        For users, if the namespace isn't scoped (contains no dots), return False.
+        Otherwise, check if the user can:
+          - create the namespace (using has_namespace) or,
+          - create objects in the namespace (using has_create) on the last element.
         """
         scope = namespace.split(".")
         if len(scope) == 1:
             return False
 
+        target = namespace
+        if write_perm == "has_namespace":
+            target = scope[-2]
+
         try:
-            sub_namespace = Namespace.objects.get(name=scope[-1])
+            namespace_obj = Namespace.objects.get(name=target)
         except Namespace.DoesNotExist as exc:
             raise NotFound from exc
 
-        return self.namespaced_can("has_namespace", sub_namespace)
+        return self.namespaced_can(write_perm, namespace_obj)
 
     #        try:
     #            parent = Namespace.objects.get(name=scope[-1])
@@ -170,6 +193,16 @@ class Namespace(HubuumModel):
 
     name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
+
+    def grant_all(self, group):
+        """Grant all permissions to the namespace to the given group."""
+        create = {}
+        create["namespace"] = self
+        create["group"] = group
+        for perm in fully_qualified_operations():
+            create[perm] = True
+        Permission.objects.update_or_create(**create)
+        return True
 
     def groups_that_can(self, perm):
         """Fetch groups that can perform a specific permission.

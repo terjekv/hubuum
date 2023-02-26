@@ -1,5 +1,6 @@
 """Permissions module for hubuum."""
 # from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import MethodNotAllowed
 from rest_framework.permissions import (
     SAFE_METHODS,
     DjangoObjectPermissions,
@@ -123,13 +124,37 @@ class NameSpace(IsSuperOrAdminOrReadOnly):
         # POST needs special treatment as we don't have an object to work on.
         # The lack of an object means we can't delegate to has_object_permission, as it will
         # never get called...
-        # Instead we have to check for has_create or has_namespace depending on context.
-        # For now though, users can't create anything...
-        # The question here is how we find the primary key that is being created so
-        # we can pass that to can_modify_namespace()...
+        # Instead we check if we are creating a namespace (has_namespace) or creating an object
+        # in a namespace (has_create).
+        # Views operating on namespaces themselves set the attribute "namespace_write_permission"
+        # to "has_namespace", and if they don't want to allow post (Detail views), they can
+        # explicitly set namespace_post to False.
+        #
+        # If we are creating a namespace:
+        #  - name is the namespace identifier itself.
+        #
+        # If we are populating into a namespace:
+        #  - The identifier for the object that is to be created is not relevant to us.
+        #  - namespace is the identifier for the namespace the object is to be placed in.
         if request.method == "POST":
-            return False
-        #            return request.user.can_modify_namespace()
+            write_perm = "has_create"
+
+            if hasattr(view, "namespace_post"):
+                if not view.namespace_post:
+                    raise MethodNotAllowed(method=request.method)
+
+            if hasattr(view, "namespace_write_permission"):
+                write_perm = view.namespace_write_permission
+
+            if write_perm == "has_namespace":
+                name = request.data["name"]
+                # We are creating a new namespace as a normal user.
+                # We need to create a permission object for the namespace, and that requires us
+                # to have a group identifier to allocate the permissions towards.
+            else:
+                name = request.data["namespace"]
+
+            return request.user.has_namespace(name, write_perm)
 
         return True
 
@@ -137,8 +162,8 @@ class NameSpace(IsSuperOrAdminOrReadOnly):
         """Check for object-specific access."""
         # We can't user the super method, as it allows read-only for everyone,
         # which we don't want.
-        if request.user.is_anonymous:
-            return False
+        # if request.user.is_anonymous:
+        #    return False
 
         if is_super_or_admin(request.user):
             return True

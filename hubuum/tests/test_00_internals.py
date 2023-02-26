@@ -54,8 +54,8 @@ class InternalsTestCase(HubuumModelTestCase):
             test.namespaced_can("nosuchperm", None)
 
         Namespace.objects.get_or_create(name="root")
-        assert test.can_modify_namespace("root") is False  # nosec
+        assert test.has_namespace("root") is False  # nosec
         with pytest.raises(NotFound):
-            test.can_modify_namespace("root.no")
+            test.has_namespace("rootnotfound.no")
         with pytest.raises(NotFound):
-            test.can_modify_namespace("root.no.reallyno")
+            test.has_namespace("rootnotfound.no.reallyno")
