@@ -45,24 +45,6 @@ def is_super_or_admin(user):
     return user.is_staff or user.is_superuser
 
 
-class IsSuperOrAdmin(IsAuthenticated):
-    """Permit super or admin users."""
-
-    def has_permission(self, request, view):
-        """Check if we're super/admin otherwise false."""
-        if is_super_or_admin(request.user):
-            return True
-
-        return False
-
-    def has_object_permission(self, request, view, obj):
-        """Check if we're super/admin otherwise false."""
-        if is_super_or_admin(request.user):
-            return True
-
-        return False
-
-
 class IsAuthenticatedAndReadOnly(IsAuthenticated):
     """Allow read-only access if authenticated."""
 
@@ -75,8 +57,8 @@ class IsAuthenticatedAndReadOnly(IsAuthenticated):
 
     def has_object_permission(self, request, view, obj):
         """Check super (IsAuthenticated) and read-only methods (SAFE_METHODS)."""
-        if not super().has_object_permission(request, view, obj):
-            return False
+        #        if not super().has_object_permission(request, view, obj):
+        #            return False
         return request.method in SAFE_METHODS
 
 
