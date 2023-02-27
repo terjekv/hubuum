@@ -99,6 +99,27 @@ class APINamespace(HubuumAPITestCase):
         self.assert_patch("/namespaces/yes", {"name": "maybe"})
         self.assert_get("/namespaces/maybe")
 
+    def test_namespace_delete_as_user(self):
+        """Test delete on namespaces as a normal user."""
+        # This creates the user and the group in one go.
+        self.client = userclient = self.get_user_client(
+            username="tmp", groupname="tmpgroup"
+        )
+        self.client = self.get_superuser_client()
+        self.assert_post("/namespaces/", {"name": "yes"})
+
+        self.client = userclient
+        self.assert_delete_and_403("/namespaces/yes")
+
+        self.client = self.get_superuser_client()
+        self.assert_post_and_204(
+            "/namespaces/yes/groups/tmpgroup", {"has_namespace": True}
+        )
+
+        self.client = userclient
+        self.assert_delete("/namespaces/yes")
+        self.assert_get_and_404("/namespaces/yes")
+
     def test_namespace_has_namespace_as_user(self):
         """Test has_namespace on namespaces as a normal user."""
         self.client = userclient = self.get_user_client(
