@@ -12,6 +12,10 @@ from .base import HubuumAPITestCase
 class APITokenAuthenticationTestCase(HubuumAPITestCase):
     """Test various token authentication operations."""
 
+    def test_redirect(self):
+        """Test redirects of incomplete URLs."""
+        self.assert_get_and_301("/users")
+
     def test_user_access_without_authentication(self):
         """Test unauthenticated user access."""
         self.client = APIClient()

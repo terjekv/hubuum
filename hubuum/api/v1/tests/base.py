@@ -6,7 +6,8 @@ from knox.models import AuthToken
 from rest_framework.test import APIClient, APITestCase
 
 from hubuum.exceptions import MissingParam
-from hubuum.models import Namespace
+
+# from hubuum.models import Namespace
 
 
 # This testsuite design is based on the testsuite for MREG:
@@ -82,7 +83,7 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
 
         self.user.save()
 
-        self.namespace = Namespace.objects.create(name="test")
+        #        self.namespace, _ = Namespace.objects.get_or_create(name="test")
 
         # https://github.com/James1345/django-rest-knox/blob/develop/knox/models.py
         token = AuthToken.objects.create(self.user)
@@ -97,6 +98,16 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         for groupname in groups:
             group, _ = Group.objects.get_or_create(name=groupname)
             group.user_set.add(self.user)
+
+    def grant(self, group, namespace, permissions):
+        """Grant a set of permissions to a given group for a namespace."""
+        oldclient = self.client
+        self.client = self.get_superuser_client()
+        perms = {}
+        for perm in permissions:
+            perms[perm] = True
+        self.assert_post_and_204(f"/namespaces/{namespace}/groups/{group}", perms)
+        self.client = oldclient
 
     @staticmethod
     def _create_path(path):
@@ -156,6 +167,10 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         """Delete and assert status as 204."""
         return self._assert_delete_and_status(path, 204, **kwargs)
 
+    def assert_delete_and_401(self, path, **kwargs):
+        """Delete and assert status as 401."""
+        return self._assert_delete_and_status(path, 401, **kwargs)
+
     def assert_delete_and_403(self, path, **kwargs):
         """Delete and assert status as 403."""
         return self._assert_delete_and_status(path, 403, **kwargs)
@@ -164,9 +179,15 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         """Delete and assert status as 404."""
         return self._assert_delete_and_status(path, 404, **kwargs)
 
-    def assert_delete_and_409(self, path, **kwargs):
-        """Delete and assert status as 409."""
-        return self._assert_delete_and_status(path, 409, **kwargs)
+    #    def assert_delete_and_409(self, path, **kwargs):
+    #        """Delete and assert status as 409."""
+    #        return self._assert_delete_and_status(path, 409, **kwargs)
+
+    def assert_get_elements(self, path, element_count, **kwargs):
+        """Get and assert (status == 200 and element_count == elements)."""
+        response = self.assert_get_and_200(path, **kwargs)
+        self.assertEqual(len(response.data), element_count)
+        return response
 
     def assert_get(self, path, **kwargs):
         """Get and assert status as 200."""
@@ -176,13 +197,21 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         """Get and assert status as 200."""
         return self._assert_get_and_status(path, 200, **kwargs)
 
-    def assert_get_and_400(self, path, **kwargs):
-        """Get and assert status as 400."""
-        return self._assert_get_and_status(path, 400, **kwargs)
+    def assert_get_and_301(self, path, **kwargs):
+        """Get and assert status as 301."""
+        return self._assert_get_and_status(path, 301, **kwargs)
+
+    #    def assert_get_and_400(self, path, **kwargs):
+    #        """Get and assert status as 400."""
+    #        return self._assert_get_and_status(path, 400, **kwargs)
 
     def assert_get_and_401(self, path, **kwargs):
         """Get and assert status as 401."""
         return self._assert_get_and_status(path, 401, **kwargs)
+
+    def assert_get_and_403(self, path, **kwargs):
+        """Get and assert status as 403."""
+        return self._assert_get_and_status(path, 403, **kwargs)
 
     def assert_get_and_404(self, path, **kwargs):
         """Get and assert status as 404."""
@@ -204,6 +233,10 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         """Patch and assert status as 400."""
         return self._assert_patch_and_status(path, 400, *args, **kwargs)
 
+    def assert_patch_and_401(self, path, *args, **kwargs):
+        """Patch and assert status as 401."""
+        return self._assert_patch_and_status(path, 401, *args, **kwargs)
+
     def assert_patch_and_403(self, path, *args, **kwargs):
         """Patch and assert status as 204."""
         return self._assert_patch_and_status(path, 403, *args, **kwargs)
@@ -216,9 +249,9 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         """Patch and assert status as 405."""
         return self._assert_patch_and_status(path, 405, *args, **kwargs)
 
-    def assert_patch_and_409(self, path, *args, **kwargs):
-        """Patch and assert status as 409."""
-        return self._assert_patch_and_status(path, 409, *args, **kwargs)
+    #    def assert_patch_and_409(self, path, *args, **kwargs):
+    #        """Patch and assert status as 409."""
+    #        return self._assert_patch_and_status(path, 409, *args, **kwargs)
 
     def assert_post(self, path, *args, **kwargs):
         """Post and assert status as 201."""
@@ -252,18 +285,22 @@ class HubuumAPITestCase(APITestCase):  # pylint: disable=too-many-public-methods
         """Post and assert status as 404."""
         return self._assert_post_and_status(path, 404, *args, **kwargs)
 
+    def assert_post_and_405(self, path, *args, **kwargs):
+        """Post and assert status as 405."""
+        return self._assert_post_and_status(path, 405, *args, **kwargs)
+
     def assert_post_and_409(self, path, *args, **kwargs):
         """Post and assert status as 409."""
         return self._assert_post_and_status(path, 409, *args, **kwargs)
 
 
-def clean_and_save(entity):
-    """Perform a full clean and a save on the object.
-
-    https://docs.djangoproject.com/en/4.1/ref/models/instances/#django.db.models.Model.full_clean
-    """
-    entity.full_clean()
-    entity.save()
+# def clean_and_save(entity):
+#    """Perform a full clean and a save on the object.
+#
+#    https://docs.djangoproject.com/en/4.1/ref/models/instances/#django.db.models.Model.full_clean
+#    """
+#    entity.full_clean()
+#    entity.save()
 
 
 # def create_host(name="testhost", ownergroup=None):

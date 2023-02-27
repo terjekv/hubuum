@@ -2,17 +2,18 @@
 # from ipaddress import ip_address
 
 from django.contrib.auth.models import Group
-from django.http import (
-    Http404,
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseServerError,
-)
+from django.http import HttpResponse
 from rest_framework import generics, status
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import (  # NotAuthenticated,
+    MethodNotAllowed,
+    NotFound,
+    ParseError,
+    ValidationError,
+)
 from rest_framework.schemas.openapi import AutoSchema
 from rest_framework.views import Response
 
+from hubuum.exceptions import Conflict
 from hubuum.filters import HubuumObjectPermissionsFilter
 from hubuum.models import (
     Host,
@@ -29,9 +30,10 @@ from hubuum.models import (
 )
 from hubuum.permissions import (
     IsSuperOrAdminOrReadOnly,
-    NameSpaceOrReadOnly,
+    NameSpace,
     fully_qualified_operations,
 )
+from hubuum.tools import get_group, get_permission, get_user
 
 from .serializers import (
     GroupSerializer,
@@ -69,7 +71,14 @@ class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
     """
 
     def get_object(self):
-        """Perform the actual lookup based on the lookup_fields."""
+        """Perform the actual lookup based on the model's lookup_fields.
+
+        raises: 404 if not found.
+        return: object
+        """
+        #        if self.request.user.is_anonymous:
+        #            raise NotAuthenticated()
+
         queryset = self.get_queryset()
         obj = None
         value = self.kwargs["val"]
@@ -87,15 +96,17 @@ class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
                 pass
 
         if obj is None:
-            raise Http404()
+            raise NotFound()
 
+        # As we overload get_object, we need to manually check permissions.
+        self.check_object_permissions(self.request, obj)
         return obj
 
 
 class HubuumList(generics.ListCreateAPIView):
     """Get: List objects. Post: Add object."""
 
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    permission_classes = (NameSpace,)
     filter_backends = [HubuumObjectPermissionsFilter]
 
 
@@ -103,7 +114,7 @@ class HubuumList(generics.ListCreateAPIView):
 class HubuumDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     """Get, Patch, or Destroy an object."""
 
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    permission_classes = (NameSpace,)
 
 
 class UserList(HubuumList):
@@ -111,6 +122,7 @@ class UserList(HubuumList):
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class UserDetail(HubuumDetail):
@@ -119,6 +131,7 @@ class UserDetail(HubuumDetail):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_fields = ("id", "username", "email")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class GroupList(HubuumList):
@@ -126,6 +139,7 @@ class GroupList(HubuumList):
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class GroupDetail(HubuumDetail):
@@ -134,6 +148,89 @@ class GroupDetail(HubuumDetail):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     lookup_fields = ("id", "name")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+
+
+class GroupMembers(
+    MultipleFieldLookupORMixin,
+    generics.RetrieveAPIView,
+):
+    """List group members."""
+
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    lookup_fields = ("id", "name")
+    serializer_class = UserSerializer
+    queryset = Group.objects.all()
+    schema = AutoSchema(
+        tags=["LISTVIEW"],
+        component_name="Group memberships",
+        operation_id_base="Groupmemberships",
+    )
+
+    def get(self, request, *args, **kwargs):
+        """Get all users in the group."""
+        group_object = self.get_object()
+        users = User.objects.filter(groups=group_object)
+
+        return Response(UserSerializer(users, many=True).data)
+
+
+class GroupMembersUser(
+    MultipleFieldLookupORMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    """Modify users in groups."""
+
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    lookup_fields = ("id", "name")
+    serializer_class = UserSerializer
+    queryset = Group.objects.all()
+    schema = AutoSchema(
+        tags=["LISTVIEW"],
+        component_name="Group memberships users",
+        operation_id_base="Groupmembershipsusers",
+    )
+
+    def get(self, request, *args, **kwargs):
+        """Get user in group."""
+        group = self.get_object()
+
+        user = get_user(kwargs["userid"])
+        if user:
+            if user.groups.filter(id=group.id).exists():
+                return Response(UserSerializer(user).data)
+
+        raise NotFound()
+
+    def patch(self, request, *args, **kwargs):
+        """Disallow patch."""
+        raise MethodNotAllowed(request.method)
+
+    def post(self, request, *args, **kwargs):
+        """Add a user to a group."""
+        group = self.get_object()
+        user = get_user(kwargs["userid"])
+
+        if user.groups.filter(id=group.id).exists():
+            return Response(
+                f"User {user.id} is already a member of group {group.id}",
+                status=status.HTTP_200_OK,
+            )
+
+        user.groups.add(group)
+        user.save()
+        return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
+
+    def delete(self, request, *args, **kwargs):
+        """Delete a user from a group."""
+        group = self.get_object()
+        user = get_user(kwargs["userid"])
+
+        if user.groups.filter(id=group.id).exists():
+            user.groups.remove(group)
+            user.save()
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class PermissionList(HubuumList):
@@ -170,7 +267,45 @@ class NamespaceList(HubuumList):
 
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
-    permission_classes = (NameSpaceOrReadOnly,)
+    permission_classes = (NameSpace,)
+    namespace_write_permission = "has_namespace"
+
+    def post(self, request, *args, **kwargs):
+        """Process creation of new namespaces."""
+        user = request.user
+        group = None
+        if "group" in request.data:
+            # We want to pop the group since it's not part of the model.
+            # As such, validation will fail if it present.
+            group = Group.objects.get(id=request.data.pop("group"))
+            if not user.is_member_of(group):
+                raise ValidationError(
+                    """The user is not a member of the group that was requested to have
+                    permissions for the created object."""
+                )
+        else:
+            if user.has_only_one_group():
+                group = user.groups.all().first()
+
+        if not user.is_admin() and group is None:
+            raise ValidationError(
+                """No group parameter provided, and no singular default available.
+                All user-owned namespace-enabled objects are required to have an initial group
+                with permissions to the object set upon creation."""
+            )
+
+        #        if not user.is_admin():
+        #            print(user.has_only_one_group())
+        #            print(user.groups.all())
+
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            new_namespace = serializer.save()
+
+        if group is not None:
+            new_namespace.grant_all(group)
+
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class NamespaceDetail(HubuumDetail):
@@ -179,43 +314,78 @@ class NamespaceDetail(HubuumDetail):
     queryset = Namespace.objects.all()
     serializer_class = NamespaceSerializer
     lookup_fields = ("id", "name")
-    permission_classes = (NameSpaceOrReadOnly,)
+    permission_classes = (NameSpace,)
+    namespace_write_permission = "has_namespace"
+    namespace_post = False
 
 
-class NamespaceGroups(
+class NamespaceMembers(
     MultipleFieldLookupORMixin,
-    generics.RetrieveUpdateDestroyAPIView,
+    generics.RetrieveAPIView,
 ):
     """List groups that can access a namespace."""
 
-    permission_classes = (NameSpaceOrReadOnly,)
+    permission_classes = (NameSpace,)
     lookup_fields = ("id", "name")
     serializer_class = GroupSerializer
     queryset = Namespace.objects.all()
     schema = AutoSchema(
         tags=["LISTVIEW"],
-        component_name="Namespace group permissions",
-        operation_id_base="NamespaceGroups",
+        component_name="Namespace members",
+        operation_id_base="NamespaceMember",
     )
 
     def get(self, request, *args, **kwargs):
         """Get all groups that have access to a given namespace."""
-        namespace_object = self.get_object()
-        qs = Permission.objects.filter(namespace=namespace_object.id).values("group")
+        namespace = self.get_object()
+
+        qs = Permission.objects.filter(namespace=namespace.id).values("group")
         groups = Group.objects.filter(id__in=qs)
 
         return Response(GroupSerializer(groups, many=True).data)
 
+
+class NamespaceMembersGroup(
+    MultipleFieldLookupORMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
+    """Modify groups that can access a namespace."""
+
+    permission_classes = (NameSpace,)
+    lookup_fields = ("id", "name")
+    serializer_class = PermissionSerializer
+    queryset = Namespace.objects.all()
+    schema = AutoSchema(
+        tags=["LISTVIEW"],
+        component_name="Namespace group permissions",
+        operation_id_base="NamespaceMembersGroup",
+    )
+
+    def get(self, request, *args, **kwargs):
+        """Get a group that has access to a namespace."""
+        namespace = self.get_object()
+        group = get_group(kwargs["groupid"])
+        permission = get_permission(namespace, group)
+
+        return Response(PermissionSerializer(permission).data)
+
+    # TODO: Should be used to update a groups permissions for the namespace.
     def patch(self, request, *args, **kwargs):
-        """Disallow patch."""
-        raise MethodNotAllowed(request.method)
+        """Patch the permissions of an existing group for a namespace."""
+        namespace = self.get_object()
+        group = get_group(kwargs["groupid"])
+        instance = get_permission(namespace, group)
+
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
 
     def post(self, request, *args, **kwargs):
         """Put associates a group with a namespace.
 
-        /namespace/<namespaceid>/groups
+        /namespace/<namespaceid>/groups/<groupid>
             {
-                group = 1,
                 has_read = 1,
                 has_delete = 0,
                 has_create = 0,
@@ -225,48 +395,41 @@ class NamespaceGroups(
 
         Transparently creates a permission object.
         """
-        try:
-            groupid = request.data.pop("group")
-        except KeyError:
-            return HttpResponseBadRequest("No group argument provided")
-        except Exception:  # pylint: disable=broad-except
-            return HttpResponseServerError("Unhandled error!")
-
-        group = None
-        for field in self.lookup_fields:
-            try:
-                group = Group.objects.get(**{field: groupid})
-                break
-            except Exception:  # nosec pylint: disable=broad-except
-                pass
-
-        if not group:
-            return HttpResponse(
-                status=status.HTTP_404_NOT_FOUND, reason=f"Group not found: '{groupid}'"
-            )
+        namespace = self.get_object()
+        group = get_group(kwargs["groupid"])
+        instance = get_permission(namespace, group, raise_exception=False)
 
         if set(request.data.keys()).isdisjoint(fully_qualified_operations()):
-            return HttpResponseBadRequest(
-                f"Missing at least one of '{fully_qualified_operations()}'"
+            raise ParseError(
+                detail=f"Missing at least one of '{fully_qualified_operations()}'"
             )
 
-        params = {}
-        for key in request.data.keys():
-            params[key] = bool(request.data[key])
+        if instance:
+            raise Conflict()
 
-        # Check if the object (namespace, group) already exists.
-        namespace_object = self.get_object()
-        try:
-            Permission.objects.get(namespace=namespace_object, group=group)
-            return HttpResponse(status=status.HTTP_409_CONFLICT)
-        except Permission.DoesNotExist:
-            pass
+        params = {"namespace": namespace.id, "group": group.id, **request.data}
+        serializer = self.get_serializer(data=params, partial=False)
+        serializer.is_valid(raise_exception=True)
 
-        try:
-            Permission.objects.create(namespace=namespace_object, group=group, **params)
-            return HttpResponse(status=status.HTTP_204_NO_CONTENT)
-        except Exception:  # pylint: disable=broad-except
-            return HttpResponseServerError()
+        create = serializer.data
+        create["namespace"] = namespace
+        create["group"] = group
+        create["has_read"] = True
+
+        Permission.objects.create(**create)
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+
+    def delete(self, request, *args, **kwargs):
+        """Delete disassociates a group with a namespace.
+
+        Transparently deletes the permission object.
+        """
+        namespace = self.get_object()
+        group = get_group(kwargs["groupid"])
+        permission = get_permission(namespace, group)
+
+        permission.delete()
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
 
 
 class HostTypeList(HubuumList):

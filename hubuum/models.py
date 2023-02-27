@@ -3,16 +3,22 @@
 import re
 
 from django.apps import apps
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, Group
 from django.db import models
+from rest_framework.exceptions import NotFound
 
 from hubuum.exceptions import MissingParam
-from hubuum.permissions import operation_exists
+from hubuum.permissions import fully_qualified_operations, operation_exists
 
 
 def model_exists(model):
     """Check if a given model exists by name."""
-    return apps.get_model("hubuum", model)
+    try:
+        apps.get_model("hubuum", model)
+    except LookupError:
+        return False
+
+    return True
 
 
 def model_is_open(model):
@@ -28,7 +34,10 @@ def models_that_are_open():
 class User(AbstractUser):
     """Extension to the default User class."""
 
-    permissions_pattern = re.compile(r"^hubuum.(\w+)_(\w+)$")
+    model_permissions_pattern = re.compile(
+        r"^hubuum.(create|read|update|delete|namespace)_(\w+)$"
+    )
+    lookup_fields = ["id", "username", "email"]
 
     _group_list = None
 
@@ -43,48 +52,96 @@ class User(AbstractUser):
             self._group_list = list(self.groups.values_list("name", flat=True))
         return self._group_list
 
-    def can_modify_namespaces(self, namespace):
+    def group_count(self):
+        """Return the number of groups the user is a member of."""
+        return self.groups.count()
+
+    def has_only_one_group(self):
+        """Return true if the user is a member of only one group."""
+        return self.group_count() == 1
+
+    def is_member_of(self, group):
+        """Check if the user is a member of a specific group."""
+        return self.is_member_of_any([group])
+
+    def is_member_of_any(self, groups):
+        """Check to see if a user is a member of any of the groups in the list."""
+        return bool([i for i in groups if i in self.groups.all()])
+
+    def namespaced_can(self, perm, namespace) -> bool:
+        """Check to see if the user can perform perm for namespace.
+
+        param: perm (permission string, 'has_[create|read|update|delete|namespace])
+        param: namespace (namespace object)
+        return True|False
+        """
+        if not operation_exists(perm, fully_qualified=True):
+            raise MissingParam(f"Unknown permission '{perm}' passed to namespaced_can.")
+
+        # We need to check if the user is a member of a group
+        # that has the given permission the namespace.
+        groups = namespace.groups_that_can(perm)
+        return self.is_member_of_any(groups)
+
+    def has_namespace(
+        self,
+        namespace,
+        write_perm="has_namespace",
+    ):
         """Check if the user has namespace permissions for the given namespace.
 
-        If the namespace isn't scoped (contains no dots), return False.
-        Only admin users can create root namespaces.
-        """
-        scope = namespace.split(".")
+        Only admin users can create or populate root namespaces.
 
-        if len(scope) == 0:
+        For users, if the namespace isn't scoped (contains no dots), return False.
+        Otherwise, check if the user can:
+          - create the namespace (using has_namespace) or,
+          - create objects in the namespace (using has_create) on the last element.
+        """
+        if isinstance(namespace, int):
+            try:
+                namespace_obj = Namespace.objects.get(pk=namespace)
+                return self.namespaced_can(write_perm, namespace_obj)
+            except Namespace.DoesNotExist as exc:
+                raise NotFound from exc
+
+        scope = namespace.split(".")
+        if len(scope) == 1:
             return False
+
+        if write_perm == "has_namespace":
+            target = scope[-2]
 
         try:
-            parent = Namespace.objects.get(name=scope[-1])
-        except Namespace.DoesNotExist:
-            return False
+            namespace_obj = Namespace.objects.get(name=target)
+        except Namespace.DoesNotExist as exc:
+            raise NotFound from exc
 
-        return Permission.objects.filter(
-            namespace=parent.id, has_namespace=True, group__in=self.groups.all()
-        ).exists()
+        return self.namespaced_can(write_perm, namespace_obj)
+
+    #        try:
+    #            parent = Namespace.objects.get(name=scope[-1])
+    #        except Namespace.DoesNotExist:
+    #            return False
+
+    #        return Permission.objects.filter(
+    #            namespace=parent.id, has_namespace=True, group__in=self.groups.all()
+    #        ).exists()
 
     def has_perm(self, perm: str, obj: object = None) -> bool:
         """
-        Permissions check for an object.
+        Model (?) permissions check for an object.
 
         perm: see permissions.py
         obj: Hubuum Object
         """
-        #        print("Self: <" + str(self) + ">")
-        #        print("Perm: <" + str(perm) + ">")
-        #        print("Obj: <" + str(obj) + "> (" + str(obj.__class__) + ")")
-
         field = None
 
         try:
-            operation, model = re.match(User.permissions_pattern, perm).groups()
+            operation, model = re.match(User.model_permissions_pattern, perm).groups()
         except AttributeError as exc:
             raise MissingParam(
                 f"Unknown permission '{perm}' passed to has_perm"
             ) from exc
-
-        if not (operation and model):
-            raise MissingParam(f"Unknown expression '{perm}' passed to has_perm")
 
         if operation_exists(operation) and model_exists(model):
             field = "has_" + operation
@@ -93,6 +150,7 @@ class User(AbstractUser):
                 f"Unknown operation or model '{operation} / {model}' passed to has_perm"
             )
 
+        # We should always get an object to test against.
         if obj:
             return Permission.objects.filter(
                 namespace=obj.namespace, **{field: True}, group__in=self.groups.all()
@@ -107,6 +165,11 @@ class HubuumModel(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    readonly_fields = (
+        "created_at",
+        "updated_at",
+    )
+
     class Meta:
         """Meta data for the class."""
 
@@ -116,6 +179,8 @@ class HubuumModel(models.Model):
 class NamespacedHubuumModel(HubuumModel):
     """Base model for a namespaced Hubuum Objects."""
 
+    # When we delete a namespace, do we want *all* the objects to disappear?
+    # That'd be harsh.
     namespace = models.ForeignKey(
         "Namespace",
         on_delete=models.DO_NOTHING,
@@ -132,8 +197,30 @@ class NamespacedHubuumModel(HubuumModel):
 class Namespace(HubuumModel):
     """The namespace ('domain') of an object."""
 
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, unique=True)
     description = models.TextField(blank=True)
+
+    def grant_all(self, group):
+        """Grant all permissions to the namespace to the given group."""
+        create = {}
+        create["namespace"] = self
+        create["group"] = group
+        for perm in fully_qualified_operations():
+            create[perm] = True
+        Permission.objects.update_or_create(**create)
+        return True
+
+    def groups_that_can(self, perm):
+        """Fetch groups that can perform a specific permission.
+
+        param: perm (permission string, 'has_[read|create|update|delete|namespace])
+        return [group objects] (may be empty)
+        """
+        qs = Permission.objects.filter(namespace=self.id, **{perm: True}).values(
+            "group"
+        )
+        groups = Group.objects.filter(id__in=qs)
+        return groups
 
 
 class Permission(HubuumModel):
@@ -149,9 +236,11 @@ class Permission(HubuumModel):
 
     """
 
+    # If the namespace the permission points to goes away, clear the entry.
     namespace = models.ForeignKey(
         "Namespace", related_name="p_namespace", on_delete=models.CASCADE
     )
+    # If the group the permission uses goes away, clear the entry.
     group = models.ForeignKey(
         "auth.Group", related_name="p_group", on_delete=models.CASCADE
     )
@@ -205,13 +294,6 @@ class Host(NamespacedHubuumModel):
         related_name="hosts",
         blank=True,
         null=True,
-    )
-
-    namespace = models.ForeignKey(
-        "Namespace",
-        on_delete=models.CASCADE,
-        null=False,
-        blank=False,
     )
 
     def __str__(self):
