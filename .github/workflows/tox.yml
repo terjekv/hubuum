@@ -2,17 +2,19 @@ name: tests
 
 on:
   - push
-  - pull_request
+#  - pull_request
 
 jobs:
   tox:
     name: tox
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false 
+      fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11']
-        # python-version: ['3.10']
+        python-version:
+          - "3.9"
+          - "3.10"
+          - "3.11"
 
     services:
       postgres:
@@ -77,9 +79,7 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version:
-          - '3.9'
-          - '3.10'
-          - '3.11'
+          - "3.11"
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -128,8 +128,8 @@ jobs:
     needs: finish
     runs-on: ubuntu-latest
     steps:
-    - name: Refresh Coveralls.io
-      uses: fjogeleit/http-request-action@v1
-      with:
-        url: https://camo.githubusercontent.com/5a2784ce225c619ae09fd6c1d2b53a947d54c6819d2d7dfad88b6245734571de/68747470733a2f2f636f766572616c6c732e696f2f7265706f732f6769746875622f7465726a656b762f68756275756d2f62616467652e7376673f6272616e63683d6d61696e
-        method: PURGE
+      - name: Refresh Coveralls.io
+        uses: fjogeleit/http-request-action@v1
+        with:
+          url: https://camo.githubusercontent.com/5a2784ce225c619ae09fd6c1d2b53a947d54c6819d2d7dfad88b6245734571de/68747470733a2f2f636f766572616c6c732e696f2f7265706f732f6769746875622f7465726a656b762f68756275756d2f62616467652e7376673f6272616e63683d6d61696e
+          method: PURGE
