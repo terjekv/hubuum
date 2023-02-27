@@ -92,7 +92,7 @@ class APINamespace(HubuumAPITestCase):
 
         self.client = self.get_superuser_client()
         self.assert_post_and_204(
-            "/namespaces/yes/groups/tmpgroup", {"has_update": True}
+            "/namespaces/yes/groups/tmpgroup", {"has_namespace": True}
         )
 
         self.client = userclient

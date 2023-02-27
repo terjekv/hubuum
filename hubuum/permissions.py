@@ -160,4 +160,19 @@ class NameSpace(IsSuperOrAdminOrReadOnly):
             "DELETE": "has_delete",
         }
 
-        return request.user.namespaced_can(perms_map[request.method], obj)
+        perms_map_namespace = {
+            "GET": "has_read",
+            "OPTIONS": "has_read",
+            "HEAD": "has_read",
+            "POST": "has_create",
+            "PUT": "has_namespace",
+            "PATCH": "has_namespace",
+            "DELETE": "has_namespace",
+        }
+
+        if hasattr(view, "namespace_write_permission"):
+            perm = perms_map_namespace[request.method]
+        else:
+            perm = perms_map[request.method]
+
+        return request.user.namespaced_can(perm, obj)
