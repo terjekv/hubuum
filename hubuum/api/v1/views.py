@@ -106,7 +106,7 @@ class MultipleFieldLookupORMixin:  # pylint: disable=too-few-public-methods
 class HubuumList(generics.ListCreateAPIView):
     """Get: List objects. Post: Add object."""
 
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    permission_classes = (NameSpace,)
     filter_backends = [HubuumObjectPermissionsFilter]
 
 
@@ -114,7 +114,7 @@ class HubuumList(generics.ListCreateAPIView):
 class HubuumDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPIView):
     """Get, Patch, or Destroy an object."""
 
-    permission_classes = (IsSuperOrAdminOrReadOnly,)
+    permission_classes = (NameSpace,)
 
 
 class UserList(HubuumList):
@@ -122,6 +122,7 @@ class UserList(HubuumList):
 
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class UserDetail(HubuumDetail):
@@ -130,6 +131,7 @@ class UserDetail(HubuumDetail):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     lookup_fields = ("id", "username", "email")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class GroupList(HubuumList):
@@ -137,6 +139,7 @@ class GroupList(HubuumList):
 
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class GroupDetail(HubuumDetail):
@@ -145,6 +148,7 @@ class GroupDetail(HubuumDetail):
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     lookup_fields = ("id", "name")
+    permission_classes = (IsSuperOrAdminOrReadOnly,)
 
 
 class GroupMembers(

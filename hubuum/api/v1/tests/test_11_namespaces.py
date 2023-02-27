@@ -51,6 +51,7 @@ class APINamespace(HubuumAPITestCase):
 
         response = self.assert_get_elements("/namespaces/", 1)
         nid = response.data[0]["id"]
+        self.assert_patch_and_404("/namespaces/nope", {"name": "namespace_not_two"})
         self.assert_patch(f"/namespaces/{nid}", {"name": "namespace_not_two"})
         self.assert_get("/namespaces/namespace_not_two")
         self.assert_get(f"/namespaces/{nid}")

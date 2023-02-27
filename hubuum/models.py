@@ -68,7 +68,7 @@ class User(AbstractUser):
         """Check to see if a user is a member of any of the groups in the list."""
         return bool([i for i in groups if i in self.groups.all()])
 
-    def namespaced_can(self, perm, namespace):
+    def namespaced_can(self, perm, namespace) -> bool:
         """Check to see if the user can perform perm for namespace.
 
         param: perm (permission string, 'has_[create|read|update|delete|namespace])
@@ -97,11 +97,17 @@ class User(AbstractUser):
           - create the namespace (using has_namespace) or,
           - create objects in the namespace (using has_create) on the last element.
         """
+        if isinstance(namespace, int):
+            try:
+                namespace_obj = Namespace.objects.get(pk=namespace)
+                return self.namespaced_can(write_perm, namespace_obj)
+            except Namespace.DoesNotExist as exc:
+                raise NotFound from exc
+
         scope = namespace.split(".")
         if len(scope) == 1:
             return False
 
-        target = namespace
         if write_perm == "has_namespace":
             target = scope[-2]
 

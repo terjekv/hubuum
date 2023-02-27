@@ -175,4 +175,7 @@ class NameSpace(IsSuperOrAdminOrReadOnly):
         else:
             perm = perms_map[request.method]
 
+        if hasattr(obj, "namespace"):
+            return request.user.namespaced_can(perm, obj.namespace)
+
         return request.user.namespaced_can(perm, obj)

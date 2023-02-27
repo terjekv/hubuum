@@ -59,3 +59,5 @@ class InternalsTestCase(HubuumModelTestCase):
             test.has_namespace("rootnotfound.no")
         with pytest.raises(NotFound):
             test.has_namespace("rootnotfound.no.reallyno")
+        with pytest.raises(NotFound):
+            test.has_namespace(12)

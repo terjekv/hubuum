@@ -30,11 +30,12 @@ class HubuumObjectPermissionsFilter(filters.BaseFilterBackend):
         res = Permission.objects.filter(
             has_read=True, group__in=user.groups.all()
         ).values_list("namespace", flat=True)
-        if not res:
-            return []
         # print(res)
         # print(queryset)
-        filtered = queryset.filter(pk__in=res)
+        if model_name == "namespace":
+            filtered = queryset.filter(pk__in=res)
+        else:
+            filtered = queryset.filter(namespace__in=res)
         # print(filtered)
         return filtered
 
