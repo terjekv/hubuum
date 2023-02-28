@@ -22,12 +22,6 @@ class APIHost(HubuumAPITestCase):
         self.assert_post("/hosts/", {"name": hostname, "namespace": nsblob.data["id"]})
         self.client = oldclient
 
-    def _cleanup(self):
-        """Clean up the default host (yes) in a default namespace (namespace1)."""
-        self.client = self.get_superuser_client()
-        self.assert_delete("/namespaces/namespace1")
-        self.assert_delete("/hosts/yes")
-
     def test_namespace_access_as_noone(self):
         """Test access to namespaces as a noone."""
         self._create_namespace()
@@ -39,7 +33,8 @@ class APIHost(HubuumAPITestCase):
         self.assert_get_and_401("/hosts/no")
         self.assert_delete_and_401("/hosts/yes")
         self.assert_get_and_401("/hosts/")
-        self._cleanup()
+        self.client = self.get_superuser_client()
+        self.assert_delete("/namespaces/namespace1")
 
     def test_field_validation(self):
         """Test that we can't write to read-only fields."""
@@ -50,7 +45,7 @@ class APIHost(HubuumAPITestCase):
 
         # NOTICE: Comma, not colon. This leads to a set being serialized as a list...
         self.assert_patch_and_400("/hosts/yes", {"not_a", "dict"})
-        self._cleanup()
+        self.assert_delete("/namespaces/namespace1")
 
     def test_host_listing(self):
         """Test that a user sees the correct number of hosts."""
@@ -77,7 +72,8 @@ class APIHost(HubuumAPITestCase):
         self.assert_post_and_403("/hosts/", {"name": "yes", "namespace": nsid})
         self.grant("tmpgroup", "namespace1", ["has_create", "has_read"])
         self.assert_post("/hosts/", {"name": "yes", "namespace": nsid})
-        self._cleanup()
+        self.client = self.get_superuser_client()
+        self.assert_delete("/namespaces/namespace1")
 
     def test_user_delete_host(self):
         """Test user host deletion."""
@@ -103,4 +99,5 @@ class APIHost(HubuumAPITestCase):
         self.assert_patch_and_403("/hosts/yes", {"serial": 1})
         self.grant("tmpgroup", "namespace1", ["has_update", "has_read"])
         self.assert_patch("/hosts/yes", {"serial": 1})
-        self._cleanup()
+        self.client = self.get_superuser_client()
+        self.assert_delete("/namespaces/namespace1")

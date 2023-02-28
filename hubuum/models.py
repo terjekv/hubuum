@@ -180,10 +180,10 @@ class NamespacedHubuumModel(HubuumModel):
     """Base model for a namespaced Hubuum Objects."""
 
     # When we delete a namespace, do we want *all* the objects to disappear?
-    # That'd be harsh.
+    # That'd be harsh. But, well... What is the realistic option?
     namespace = models.ForeignKey(
         "Namespace",
-        on_delete=models.DO_NOTHING,
+        on_delete=models.CASCADE,
         blank=False,
         null=False,
     )
