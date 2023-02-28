@@ -115,6 +115,7 @@ class HubuumDetail(MultipleFieldLookupORMixin, generics.RetrieveUpdateDestroyAPI
     """Get, Patch, or Destroy an object."""
 
     permission_classes = (NameSpace,)
+    lookup_fields = ("id",)
 
 
 class UserList(HubuumList):
