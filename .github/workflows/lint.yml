@@ -21,6 +21,6 @@ jobs:
           max-line-length: "99"
           plugins: "flake8-bugbear flake8-black"
       - name: isort
-        uses: isort/isort-action@v1.0.0
+        uses: isort/isort-action@v1.1.0
         with:
           requirements-files: "requirements.txt requirements-test.txt requirements-dev.txt"
